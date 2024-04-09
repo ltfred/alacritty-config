@@ -27,7 +27,10 @@ func (m Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
+			Quit <- true
+			return m, tea.Quit
+		case tea.KeyEnter:
 			return m, tea.Quit
 		}
 
@@ -43,8 +46,7 @@ func (m Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Input) View() string {
 	return fmt.Sprintf(
-		"%s\n\n%s\n\n%s",
+		"%s\n\n%s\n",
 		m.Label, m.TextInput.View(),
-		"(esc to quit)",
 	) + "\n"
 }

@@ -22,6 +22,7 @@ func (m Select) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
+			Quit <- true
 			return m, tea.Quit
 
 		case "enter":
@@ -59,7 +60,6 @@ func (m Select) View() string {
 		s.WriteString(m.Choices[i])
 		s.WriteString("\n")
 	}
-	s.WriteString("\n(press q to quit)\n")
 
 	return s.String()
 }
