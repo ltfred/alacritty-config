@@ -1,28 +1,26 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fatih/color"
+	"github.com/ltfred/alacritty-config/pkg/config"
+	"github.com/ltfred/alacritty-config/pkg/prompt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "alacritty-config",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Short: "Init alacritty config",
+	Run:   initConfig,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -34,14 +32,61 @@ func Execute() {
 	}
 }
 
-func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+func initConfig(cmd *cobra.Command, args []string) {
+	sel := prompt.Select{
+		Choices: []string{"Yes", "No"},
+		Label: "This is " + color.New(color.FgBlue).Sprint(
+			"alacritty configuration wizard.") +
+			"It will ask you a few questions and configure your alacritty, continue?\n\n",
+	}
+	p := tea.NewProgram(sel)
+	m, err := p.Run()
+	if err != nil {
+		color.Red(err.Error())
+		return
+	}
+	if m, ok := m.(prompt.Select); ok && m.Result != "" {
+		if m.Result == "No" {
+			return
+		}
+	}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.alacritty-config.yaml)")
+	cfg := config.Config{}
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// font
+	fontInput := textinput.New()
+	fontInput.Focus()
+	fontInput.CharLimit, fontInput.Width = 156, 30
+	input := prompt.Input{TextInput: fontInput, Label: "1. Input font(recommend nerd font):"}
+	p = tea.NewProgram(input)
+	m, err = p.Run()
+	if err != nil {
+		color.Red(err.Error())
+		return
+	}
+	if m, ok := m.(prompt.Input); ok {
+		cfg.Font.Normal.Family = m.TextInput.Value()
+	}
+
+	// font size
+	fontSizeInput := textinput.New()
+	fontSizeInput.Focus()
+	fontSizeInput.CharLimit, fontInput.Width = 156, 30
+	fontSizeInput.Validate = func(s string) error {
+		_, err := strconv.ParseFloat(s, 32)
+		return err
+	}
+	input = prompt.Input{TextInput: fontSizeInput, Label: "2. Input font size:"}
+	p = tea.NewProgram(input)
+	m, err = p.Run()
+	if err != nil {
+		color.Red(err.Error())
+		return
+	}
+	if m, ok := m.(prompt.Input); ok {
+		size, _ := strconv.ParseFloat(m.TextInput.Value(), 32)
+		cfg.Font.Size = float32(size)
+	}
+
+	// window
 }

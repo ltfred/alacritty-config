@@ -51,7 +51,7 @@ func theme(cmd *cobra.Command, args []string) {
 		color.Red(err.Error())
 		return
 	}
-	color.Green("theme change to %s", th)
+	color.Green("alacritty theme change to %s", th)
 
 	return
 }
