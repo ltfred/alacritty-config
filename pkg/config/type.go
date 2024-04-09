@@ -119,3 +119,16 @@ type (
 		Blinking string `toml:"blinking,omitempty"`
 	}
 )
+
+type (
+	Bell struct {
+		Animation string `toml:"animation,omitempty"`
+		Duration  int32  `toml:"duration,omitempty"`
+		Color     string `toml:"color,omitempty"`
+	}
+)
+
+type Selection struct {
+	SemanticEscapeChars string `toml:"semantic_escape_chars,omitempty"`
+	SaveToClipboard     bool   `toml:"save_to_clipboard,omitempty"`
+}

@@ -14,6 +14,8 @@ type Config struct {
 	Font      Font      `toml:"font,omitempty"`
 	Cursor    Cursor    `toml:"cursor,omitempty"`
 	Scrolling Scrolling `toml:"scrolling,omitempty"`
+	Bell      Bell      `toml:"bell,omitempty"`
+	Selection Selection `toml:"selection,omitempty"`
 }
 
 func (c *Config) ReadConfig(path string) (Config, error) {

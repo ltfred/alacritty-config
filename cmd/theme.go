@@ -39,13 +39,13 @@ func theme(cmd *cobra.Command, args []string) {
 		return
 	}
 	th := themes.Themes[idx[0]]
-	var colors config.Colors
+	var colors config.Config
 	err = toml.Unmarshal(themes.ThemesMap[th], &colors)
 	if err != nil {
 		color.Red(err.Error())
 		return
 	}
-	readConfig.Colors = colors
+	readConfig.Colors = colors.Colors
 	err = readConfig.WriteConfig()
 	if err != nil {
 		color.Red(err.Error())
