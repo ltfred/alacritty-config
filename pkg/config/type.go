@@ -36,7 +36,7 @@ type (
 		Normal                       Normal          `toml:"normal,omitempty"`
 		Bright                       Normal          `toml:"bright,omitempty"`
 		Dim                          Normal          `toml:"dim,omitempty"`
-		IndexedColors                IndexedColors   `toml:"indexed_colors,omitempty"`
+		IndexedColors                []IndexedColors `toml:"indexed_colors,omitempty"`
 		TransparentBackgroundColors  bool            `toml:"transparent_background_colors,omitempty"`
 		DrawBoldTextWithBrightColors bool            `toml:"draw_bold_text_with_bright_colors,omitempty"`
 	}

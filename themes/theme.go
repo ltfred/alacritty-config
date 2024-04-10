@@ -83,9 +83,6 @@ var challenger_deep []byte
 //go:embed chicago95.toml
 var chicago95 []byte
 
-//go:embed citylights.toml
-var citylights []byte
-
 //go:embed cyber_punk_neon.toml
 var cyber_punk_neon []byte
 
@@ -124,9 +121,6 @@ var github_dark []byte
 
 //go:embed github_dark_colorblind.toml
 var github_dark_colorblind []byte
-
-//go:embed github_dark_default.toml
-var github_dark_default []byte
 
 //go:embed github_dark_dimmed.toml
 var github_dark_dimmed []byte
@@ -344,6 +338,9 @@ var terminal_app []byte
 //go:embed thelovelace.toml
 var thelovelace []byte
 
+//go:embed theme.go
+var theme []byte
+
 //go:embed theme_test.go
 var theme_test []byte
 
@@ -399,7 +396,6 @@ var Themes = []string{
 "catppuccin_mocha",
 "challenger_deep",
 "chicago95",
-"citylights",
 "cyber_punk_neon",
 "dark_pastels",
 "deep_space",
@@ -413,7 +409,6 @@ var Themes = []string{
 "flexoki",
 "github_dark",
 "github_dark_colorblind",
-"github_dark_default",
 "github_dark_dimmed",
 "github_dark_high_contrast",
 "github_dark_tritanopia",
@@ -523,7 +518,6 @@ var ThemesMap = map[string][]byte{
 "catppuccin_mocha": catppuccin_mocha,
 "challenger_deep": challenger_deep,
 "chicago95": chicago95,
-"citylights": citylights,
 "cyber_punk_neon": cyber_punk_neon,
 "dark_pastels": dark_pastels,
 "deep_space": deep_space,
@@ -537,7 +531,6 @@ var ThemesMap = map[string][]byte{
 "flexoki": flexoki,
 "github_dark": github_dark,
 "github_dark_colorblind": github_dark_colorblind,
-"github_dark_default": github_dark_default,
 "github_dark_dimmed": github_dark_dimmed,
 "github_dark_high_contrast": github_dark_high_contrast,
 "github_dark_tritanopia": github_dark_tritanopia,
