@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gookit/color"
-	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/ltfred/alacritty-config/pkg/config"
 	"github.com/ltfred/alacritty-config/pkg/prompt"
 	"github.com/ltfred/alacritty-config/themes"
@@ -42,44 +39,104 @@ func initConfig(cmd *cobra.Command, args []string) {
 			prompt.Quit <- true
 		}()
 		// confirm
-		isConfirm, err := confirm()
-		if err != nil || !isConfirm {
+		confirmChoices := []string{"Yes", "No"}
+		newSelect := prompt.NewSelect(confirmChoices, "This is "+color.Blue.Sprintf(
+			"alacritty configuration wizard.")+
+			"It will ask you a few questions and configure your alacritty, "+
+			"which will cover your previous configuration, continue?\n\n")
+		sel, err := newSelect.Run()
+		if err != nil || sel == "" || sel == "No" {
 			return
 		}
 
 		cfg := config.Config{}
-
 		// font
-		fontFamily, err := font()
+		newInput := prompt.NewInput("\n1. Input font(recommend nerd font):", "")
+		cfg.Font.Normal.Family, err = newInput.Run()
 		if err != nil {
 			return
 		}
-		cfg.Font.Normal.Family = fontFamily
-
 		// font size
-		fontSize, err := fonSize()
+		cfg.Font.Size = 15.0
+		newInput = prompt.NewInput("2. Input font size:", "15.0", func(s string) error {
+			if _, err = strconv.ParseFloat(s, 32); err != nil {
+				color.Warn.Prompt("Please enter a number")
+				return err
+			}
+			return nil
+		})
+		fontSize, err := newInput.Run()
 		if err != nil {
 			return
 		}
-		cfg.Font.Size = fontSize
+		size, _ := strconv.ParseFloat(fontSize, 32)
+		if size != 0 {
+			cfg.Font.Size = float32(size)
+		}
 
 		// theme
-		i, err := displayTheme()
-		if err != nil {
-			color.Error.Prompt(err.Error())
+		newSelect = prompt.NewSelect(confirmChoices, "3. Choose a theme:\n\n")
+		sel, err = newSelect.Run()
+		if err != nil || sel == "" {
 			return
 		}
-		th := themes.Themes[i]
-		var colors config.Config
-		err = toml.Unmarshal(themes.ThemesMap[th], &colors)
+		if sel == "Yes" {
+			if i, err := displayTheme(); err != nil {
+				if err != nil {
+					color.Error.Prompt(err.Error())
+					return
+				}
+				th := themes.Themes[i]
+				var colors config.Config
+				if err = toml.Unmarshal(themes.ThemesMap[th], &colors); err != nil {
+					color.Error.Prompt(err.Error())
+					return
+				}
+				cfg.Colors = colors.Colors
+			}
+		}
+		// window size
+		newInput = prompt.NewInput("\n3. Input window size:", "180 * 50", func(s string) error {
+			split := strings.Split(s, " * ")
+			if len(split) != 2 {
+				color.Warn.Prompt("The format should be like 180 * 50")
+				return err
+			}
+			if _, err = strconv.ParseInt(split[0], 10, 64); err != nil {
+				color.Warn.Prompt("The format should be like 180 * 50")
+				return err
+			}
+			if _, err = strconv.ParseInt(split[1], 10, 64); err != nil {
+				color.Warn.Prompt("The format should be like 180 * 50")
+				return err
+			}
+			return nil
+		})
+		window, err := newInput.Run()
 		if err != nil {
-			color.Error.Prompt(err.Error())
 			return
 		}
-		cfg.Colors = colors.Colors
+		if window != "" {
+			split := strings.Split(window, " * ")
+			columns, _ := strconv.ParseInt(split[0], 10, 64)
+			rows, _ := strconv.ParseInt(split[1], 10, 64)
+			cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = int(columns), int(rows)
+		} else {
+			cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = 180, 50
+		}
+		// window decorations
+		newSelect = prompt.NewSelect([]string{"Full", "None", "Transparent", "Buttonless"},
+			"4. Choose window decorations:\n\n")
+		sel, err = newSelect.Run()
+		if err != nil || sel == "" {
+			return
+		}
+		cfg.Window.Decorations = sel
+
+		color.Infof("%v", cfg)
 
 	}()
-
+	// quit channel
 	var quit bool
 	select {
 	case quit = <-prompt.Quit:
@@ -87,119 +144,4 @@ func initConfig(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-}
-
-func confirm() (bool, error) {
-	sel := prompt.Select{
-		Choices: []string{"Yes", "No"},
-		Label: "This is " + color.Blue.Sprintf(
-			"alacritty configuration wizard.") +
-			"It will ask you a few questions and configure your alacritty, " +
-			"which will cover your previous configuration, continue?\n\n",
-	}
-	model, err := runPrompt(sel)
-	if err != nil {
-		return false, err
-	}
-	if m, ok := model.(prompt.Select); ok && m.Result != "" {
-		if m.Result == "No" {
-			return false, nil
-		}
-	}
-
-	return true, nil
-}
-
-func font() (string, error) {
-	fontInput := textinput.New()
-	fontInput.Focus()
-	fontInput.CharLimit, fontInput.Width = 156, 30
-	input := prompt.Input{TextInput: fontInput, Label: "1. Input font(recommend nerd font):"}
-	model, err := runPrompt(input)
-	if err != nil {
-		return "", err
-	}
-	if m, ok := model.(prompt.Input); ok {
-		return m.TextInput.Value(), nil
-	}
-
-	return "", nil
-}
-
-func fonSize() (float32, error) {
-	fontSizeInput := textinput.New()
-	fontSizeInput.Focus()
-	fontSizeInput.CharLimit, fontSizeInput.Width = 156, 30
-	fontSizeInput.Validate = func(s string) error {
-		_, err := strconv.ParseFloat(s, 32)
-		return err
-	}
-	input := prompt.Input{TextInput: fontSizeInput, Label: "2. Input font size:"}
-	model, err := runPrompt(input)
-	if err != nil {
-		return 0, err
-	}
-	if m, ok := model.(prompt.Input); ok {
-		size, _ := strconv.ParseFloat(m.TextInput.Value(), 32)
-		return float32(size), nil
-	}
-
-	return 0, nil
-}
-
-func runPrompt(model tea.Model) (tea.Model, error) {
-	p := tea.NewProgram(model)
-	m, err := p.Run()
-	if err != nil {
-		color.Error.Prompt(err.Error())
-		return nil, err
-	}
-	return m, nil
-}
-
-func colorPrint(col string) string {
-	if len(col) > 2 {
-		col = col[1:]
-	}
-
-	return color.Sprintf("<bg=%s>llo</>", col)
-}
-
-func displayTheme() (int, error) {
-	idx, err := fuzzyfinder.FindMulti(
-		themes.Themes,
-		func(i int) string {
-			return themes.Themes[i]
-		},
-		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
-			if i == -1 {
-				return ""
-			}
-
-			th := themes.Themes[i]
-			var colors config.Config
-			err := toml.Unmarshal(themes.ThemesMap[th], &colors)
-			if err != nil {
-				color.Error.Prompt(err.Error())
-				return ""
-			}
-
-			return fmt.Sprintf("        Normal Bright\n  Black %s     %s\n    Red %s     %s\n  Green %s     %s\n"+
-				" Yellow %s     %s\n   Blue %s     %s\nMagenta %s     %s\n   Cyan %s     %s\n  White %s     %s",
-				colorPrint(colors.Colors.Normal.Black), colorPrint(colors.Colors.Bright.Black),
-				colorPrint(colors.Colors.Normal.Red), colorPrint(colors.Colors.Bright.Red),
-				colorPrint(colors.Colors.Normal.Green), colorPrint(colors.Colors.Bright.Green),
-				colorPrint(colors.Colors.Normal.Yellow), colorPrint(colors.Colors.Bright.Yellow),
-				colorPrint(colors.Colors.Normal.Blue), colorPrint(colors.Colors.Bright.Blue),
-				colorPrint(colors.Colors.Normal.Magenta), colorPrint(colors.Colors.Bright.Magenta),
-				colorPrint(colors.Colors.Normal.Cyan), colorPrint(colors.Colors.Bright.Cyan),
-				colorPrint(colors.Colors.Normal.White), colorPrint(colors.Colors.Bright.White),
-			)
-		}),
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	return idx[0], nil
 }

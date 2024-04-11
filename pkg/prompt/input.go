@@ -3,6 +3,8 @@ package prompt
 import (
 	"fmt"
 
+	"github.com/gookit/color"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -49,4 +51,30 @@ func (m Input) View() string {
 		"%s\n\n%s\n",
 		m.Label, m.TextInput.View(),
 	) + "\n"
+}
+
+func NewInput(label, placeholder string, validateFunc ...textinput.ValidateFunc) Input {
+	ti := textinput.New()
+	ti.Focus()
+	ti.CharLimit, ti.Width = 156, 30
+	ti.Placeholder = placeholder
+	if len(validateFunc) != 0 {
+		ti.Validate = validateFunc[0]
+	}
+
+	return Input{TextInput: ti, Label: label}
+}
+
+func (m Input) Run() (string, error) {
+	program := tea.NewProgram(m)
+	model, err := program.Run()
+	if err != nil {
+		color.Error.Prompt(err.Error())
+		return "", err
+	}
+	if m, ok := model.(Input); ok {
+		return m.TextInput.Value(), err
+	}
+
+	return "", nil
 }

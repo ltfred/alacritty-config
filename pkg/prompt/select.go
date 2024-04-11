@@ -3,6 +3,8 @@ package prompt
 import (
 	"strings"
 
+	"github.com/gookit/color"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -62,4 +64,25 @@ func (m Select) View() string {
 	}
 
 	return s.String()
+}
+
+func NewSelect(choices []string, label string) Select {
+	return Select{
+		Label:   label,
+		Choices: choices,
+	}
+}
+
+func (m Select) Run() (string, error) {
+	program := tea.NewProgram(m)
+	model, err := program.Run()
+	if err != nil {
+		color.Error.Prompt(err.Error())
+		return "", err
+	}
+	if m, ok := model.(Select); ok {
+		return m.Result, nil
+	}
+
+	return "", nil
 }
