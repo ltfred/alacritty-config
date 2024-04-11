@@ -49,7 +49,7 @@ func theme(cmd *cobra.Command, args []string) {
 		color.Error.Prompt(err.Error())
 		return
 	}
-	color.Info.Prompt("alacritty theme change to %s", th)
+	color.Info.Prompt("Alacritty theme change to %s", th)
 
 	return
 }
