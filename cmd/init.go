@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/gookit/color"
 	"github.com/ltfred/alacritty-config/pkg/config"
@@ -98,37 +97,48 @@ func initConfig(cmd *cobra.Command, args []string) {
 			cfg.Window.Title = title
 		}
 		// window size
-		newInput = prompt.NewInput("4. Input window size:", "180 * 50", func(s string) error {
-			split := strings.Split(s, " * ")
-			if len(split) != 2 {
-				color.Warn.Prompt("The format should be like 180 * 50")
-				return err
-			}
-			if _, err = strconv.ParseInt(split[0], 10, 64); err != nil {
-				color.Warn.Prompt("The format should be like 180 * 50")
-				return err
-			}
-			if _, err = strconv.ParseInt(split[1], 10, 64); err != nil {
-				color.Warn.Prompt("The format should be like 180 * 50")
-				return err
-			}
-			return nil
-		})
-		window, err := newInput.Run()
+		inputs := prompt.NewInputs([]prompt.InputsOptions{
+			{
+				Label:     "Columns",
+				CharLimit: 3,
+				Validate: func(s string) error {
+					_, err = strconv.ParseInt(s, 10, 64)
+					if err != nil {
+						color.Warn.Prompt("Columns must be a number")
+						return err
+					}
+					return nil
+				},
+			},
+			{
+				Label:     "Lines",
+				CharLimit: 3,
+				Validate: func(s string) error {
+					_, err = strconv.ParseInt(s, 10, 64)
+					if err != nil {
+						color.Warn.Prompt("Lines must be a number")
+						return err
+					}
+					return nil
+				},
+			},
+		}, "4. Input window size:")
+		window, err := inputs.Run()
 		if err != nil {
 			return
 		}
-		if window != "" {
-			split := strings.Split(window, " * ")
-			columns, _ := strconv.ParseInt(split[0], 10, 64)
-			rows, _ := strconv.ParseInt(split[1], 10, 64)
-			cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = int(columns), int(rows)
-		} else {
-			cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = 180, 50
+		cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = 180, 50
+		if window[0] != "" {
+			columns, _ := strconv.ParseInt(window[0], 10, 64)
+			cfg.Window.Dimensions.Columns = int(columns)
+		}
+		if window[1] != "" {
+			rows, _ := strconv.ParseInt(window[1], 10, 64)
+			cfg.Window.Dimensions.Lines = int(rows)
 		}
 		// window decorations
 		newSelect = prompt.NewSelect([]string{"Full", "None", "Transparent", "Buttonless"},
-			"5. Choose window decorations:\n\n")
+			"\n5. Choose window decorations:\n\n")
 		sel, err = newSelect.Run()
 		if err != nil || sel == "" {
 			return
