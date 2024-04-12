@@ -26,16 +26,17 @@ type Inputs struct {
 }
 
 type InputsOptions struct {
-	Label     string
-	CharLimit int
-	Validate  textinput.ValidateFunc
+	Label       string
+	Placeholder string
+	CharLimit   int
+	Validate    textinput.ValidateFunc
 }
 
 func NewInputs(options []InputsOptions, prompt string) Inputs {
 	inputs := make([]textinput.Model, 0, len(options))
 	for i, option := range options {
 		t := textinput.New()
-		t.Placeholder, t.CharLimit, t.Validate = option.Label, option.CharLimit, option.Validate
+		t.Placeholder, t.CharLimit, t.Validate = option.Placeholder, option.CharLimit, option.Validate
 		if i == 0 {
 			t.Focus()
 			t.PromptStyle = focusedStyle
@@ -44,7 +45,7 @@ func NewInputs(options []InputsOptions, prompt string) Inputs {
 		inputs = append(inputs, t)
 	}
 
-	return Inputs{inputs: inputs, prompt: prompt}
+	return Inputs{inputs: inputs, prompt: prompt, options: options}
 }
 
 func (m Inputs) Run() ([]string, error) {
@@ -137,6 +138,7 @@ func (m Inputs) View() string {
 	b.WriteString(m.prompt)
 	b.WriteString("\n\n")
 	for i := range m.inputs {
+		b.WriteString(m.options[i].Label)
 		b.WriteString(m.inputs[i].View())
 		if i < len(m.inputs)-1 {
 			b.WriteRune('\n')

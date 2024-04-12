@@ -42,3 +42,42 @@ func (c *Config) WriteConfig() error {
 	}
 	return os.WriteFile(path, marshal, 0777)
 }
+
+func (c *Config) SetDefault() {
+	c.Window = Window{
+		Dimensions: Dimensions{
+			Columns: 180,
+			Lines:   50,
+		},
+		Padding:        FontOffset{},
+		DynamicPadding: false,
+		Decorations:    "Full",
+		Opacity:        1.0,
+		Blur:           false,
+		StartupMode:    "Windowed",
+		Title:          "Alacritty",
+		DynamicTitle:   true,
+	}
+
+	c.Font = Font{
+		Normal: FontNormal{
+			Family: "",
+			Style:  "Regular",
+		},
+		Bold:              FontNormal{},
+		Italic:            FontNormal{},
+		BoldItalic:        FontNormal{},
+		Size:              15,
+		Offset:            FontOffset{},
+		GlyphOffset:       FontOffset{},
+		BuiltinBoxDrawing: false,
+	}
+
+	c.Cursor = Cursor{
+		Style: CursorStyle{
+			Shape:    "Block",
+			Blinking: "Off",
+		},
+		BlinkInterval: 750,
+	}
+}

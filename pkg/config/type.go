@@ -111,7 +111,8 @@ type (
 
 type (
 	Cursor struct {
-		Style CursorStyle `toml:"style,omitempty"`
+		Style         CursorStyle `toml:"style,omitempty"`
+		BlinkInterval int         `toml:"blink_interval,omitempty"`
 	}
 
 	CursorStyle struct {
