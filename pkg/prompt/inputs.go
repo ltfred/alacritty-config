@@ -72,21 +72,17 @@ func (m Inputs) Init() tea.Cmd {
 func (m Inputs) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc":
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
 			Quit <- true
 			return m, tea.Quit
 		// Set focus to next input
-		case "tab", "shift+tab", "enter", "up", "down":
-			s := msg.String()
-			// Did the user press enter while the submit button was focused?
-			// If so, exit.
-			if s == "enter" && m.focusIndex == len(m.inputs) {
+		case tea.KeyTab, tea.KeyEnter, tea.KeyUp, tea.KeyDown:
+			if msg.Type == tea.KeyEnter && m.focusIndex == len(m.inputs) {
 				return m, tea.Quit
 			}
-
 			// Cycle indexes
-			if s == "up" || s == "shift+tab" {
+			if msg.Type == tea.KeyUp {
 				m.focusIndex--
 			} else {
 				m.focusIndex++
@@ -114,6 +110,7 @@ func (m Inputs) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return m, tea.Batch(cmds...)
+		default:
 		}
 	}
 

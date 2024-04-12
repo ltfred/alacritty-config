@@ -22,27 +22,25 @@ func (m Select) Init() tea.Cmd {
 func (m Select) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
 			Quit <- true
 			return m, tea.Quit
-
-		case "enter":
+		case tea.KeyEnter:
 			// Send the choice on the channel and exit.
 			m.Result = m.Choices[m.cursor]
 			return m, tea.Quit
-
-		case "down", "j":
+		case tea.KeyDown:
 			m.cursor++
 			if m.cursor >= len(m.Choices) {
 				m.cursor = 0
 			}
-
-		case "up", "k":
+		case tea.KeyUp:
 			m.cursor--
 			if m.cursor < 0 {
 				m.cursor = len(m.Choices) - 1
 			}
+		default:
 		}
 	}
 
