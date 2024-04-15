@@ -14,8 +14,8 @@ type (
 )
 
 type Input struct {
-	TextInput textinput.Model
-	Label     string
+	textInput textinput.Model
+	label     string
 	err       error
 }
 
@@ -41,14 +41,14 @@ func (m Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.TextInput, cmd = m.TextInput.Update(msg)
+	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
 }
 
 func (m Input) View() string {
 	return fmt.Sprintf(
 		"%s\n\n%s\n",
-		m.Label, m.TextInput.View(),
+		m.label, m.textInput.View(),
 	) + "\n"
 }
 
@@ -61,7 +61,7 @@ func NewInput(label, placeholder string, validateFunc ...textinput.ValidateFunc)
 		ti.Validate = validateFunc[0]
 	}
 
-	return Input{TextInput: ti, Label: label}
+	return Input{textInput: ti, label: label}
 }
 
 func (m Input) Run() (string, error) {
@@ -72,7 +72,7 @@ func (m Input) Run() (string, error) {
 		return "", err
 	}
 	if m, ok := model.(Input); ok {
-		return m.TextInput.Value(), err
+		return m.textInput.Value(), err
 	}
 
 	return "", nil

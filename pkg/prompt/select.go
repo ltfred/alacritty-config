@@ -10,9 +10,9 @@ import (
 
 type Select struct {
 	cursor  int
-	Result  string
-	Label   string
-	Choices []string
+	result  string
+	label   string
+	choices []string
 }
 
 func (m Select) Init() tea.Cmd {
@@ -28,17 +28,17 @@ func (m Select) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			// Send the choice on the channel and exit.
-			m.Result = m.Choices[m.cursor]
+			m.result = m.choices[m.cursor]
 			return m, tea.Quit
 		case tea.KeyDown:
 			m.cursor++
-			if m.cursor >= len(m.Choices) {
+			if m.cursor >= len(m.choices) {
 				m.cursor = 0
 			}
 		case tea.KeyUp:
 			m.cursor--
 			if m.cursor < 0 {
-				m.cursor = len(m.Choices) - 1
+				m.cursor = len(m.choices) - 1
 			}
 		default:
 		}
@@ -49,15 +49,15 @@ func (m Select) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Select) View() string {
 	s := strings.Builder{}
-	s.WriteString(m.Label)
+	s.WriteString(m.label)
 
-	for i := 0; i < len(m.Choices); i++ {
+	for i := 0; i < len(m.choices); i++ {
 		if m.cursor == i {
 			s.WriteString("(•) ")
 		} else {
 			s.WriteString("( ) ")
 		}
-		s.WriteString(m.Choices[i])
+		s.WriteString(m.choices[i])
 		s.WriteString("\n")
 	}
 
@@ -66,8 +66,8 @@ func (m Select) View() string {
 
 func NewSelect(choices []string, label string) Select {
 	return Select{
-		Label:   label,
-		Choices: choices,
+		label:   label,
+		choices: choices,
 	}
 }
 
@@ -79,7 +79,7 @@ func (m Select) Run() (string, error) {
 		return "", err
 	}
 	if m, ok := model.(Select); ok {
-		return m.Result, nil
+		return m.result, nil
 	}
 
 	return "", nil

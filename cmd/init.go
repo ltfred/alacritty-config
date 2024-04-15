@@ -127,6 +127,19 @@ func setWindowCfg(cfg *config.Config) {
 		return
 	}
 	cfg.Window.Decorations = color.ClearCode(strings.Split(sel, "--")[0])
+
+	startupModes := []string{
+		fmt.Sprintf("%s--Regular window", color.Blue.Sprint("Windowed")),
+		fmt.Sprintf("%s--The window will be maximized on startup", color.Blue.Sprint("Maximized")),
+		fmt.Sprintf("%s--The window will be fullscreened on startup", color.Blue.Sprint("Fullscreen")),
+		fmt.Sprintf("%s--Same as Fullscreen, but you can stack windows on top", color.Blue.Sprint("SimpleFullscreen")),
+	}
+	newSelect = prompt.NewSelect(startupModes, "\nChoose Startup mode (changes require restart):\n\n")
+	sel, err = newSelect.Run()
+	if err != nil {
+		return
+	}
+	cfg.Window.StartupMode = color.ClearCode(strings.Split(sel, "--")[0])
 }
 
 func setFontCfg(cfg *config.Config) {
