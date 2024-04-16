@@ -9,10 +9,10 @@ alacritty-config
 
 ## Use
 
-### Config
+### Init
 
 ```
-alacritty-config
+alacritty-config init
 ```
 
 ### Switch theme
