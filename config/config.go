@@ -61,7 +61,7 @@ func (c *Config) SetDefault() {
 
 	c.Font = Font{
 		Normal: FontNormal{
-			Family: "",
+			Family: "Menlo",
 			Style:  "Regular",
 		},
 		Bold:              FontNormal{},

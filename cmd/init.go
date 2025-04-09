@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
-	"strings"
 
 	"github.com/ltfred/alacritty-config/themes"
 	"github.com/pelletier/go-toml/v2"
 
+	"github.com/manifoldco/promptui"
+
 	"github.com/gookit/color"
-	"github.com/ltfred/alacritty-config/pkg/config"
-	"github.com/ltfred/alacritty-config/pkg/prompt"
+	"github.com/ltfred/alacritty-config/config"
 	"github.com/spf13/cobra"
 )
 
@@ -26,212 +27,168 @@ func init() {
 }
 
 func initConfig(cmd *cobra.Command, args []string) {
-	go func() {
-		defer func() {
-			prompt.Quit <- true
-		}()
-		// confirm
-		confirmChoices := []string{"Yes", "No"}
-		newSelect := prompt.NewSelect(confirmChoices, "This is "+color.Blue.Sprintf(
-			"alacritty configuration wizard.")+
-			"It will ask you a few questions and configure your alacritty, "+
-			"which will cover your previous configuration, continue?\n\n")
-		sel, err := newSelect.Run()
-		if err != nil || sel == "No" {
-			return
-		}
-		cfg := &config.Config{}
-		cfg.SetDefault()
-		// window
-		setWindowCfg(cfg)
-		// font
-		setFontCfg(cfg)
-		// theme
-		setThemeCfg(cfg)
-		// cursor
-		setCursorCfg(cfg)
-
-		color.Infof("%v", cfg)
-
-	}()
-	// quit channel
-	var quit bool
-	select {
-	case quit = <-prompt.Quit:
-		if quit {
-			return
-		}
+	if !confirm("This is alacritty configuration wizard, " +
+		"It will ask you a few questions and configure your alacritty, which will cover your previous configuration, " +
+		"continue") {
+		os.Exit(1)
 	}
+
+	cfg := &config.Config{}
+	cfg.SetDefault()
+	// window
+	setWindowCfg(cfg)
+	// font
+	setFontCfg(cfg)
+	//// theme
+	setThemeCfg(cfg)
+	//// cursor
+	setCursorCfg(cfg)
+
+	color.Infof("%v", cfg)
+
+	cfg.WriteConfig()
 }
 
 func setWindowCfg(cfg *config.Config) {
 	// window title
-	newInput := prompt.NewInput("\nInput window title:", "Alacritty")
-	title, err := newInput.Run()
-	if err != nil {
-		return
-	}
-	if title != "" {
+	if title := input("Input window title", "Alacritty"); title != "" {
 		cfg.Window.Title = title
 	}
 	// window size
-	inputs := prompt.NewInputs([]prompt.InputsOptions{
-		{
-			Label:       "Columns",
-			Placeholder: "180",
-			CharLimit:   3,
-			Validate: func(s string) error {
-				if _, err = strconv.ParseInt(s, 10, 64); err != nil {
-					color.Warn.Prompt("Columns must be a number")
-					return err
-				}
-				return nil
-			},
-		},
-		{
-			Label:       "Lines",
-			Placeholder: "50",
-			CharLimit:   3,
-			Validate: func(s string) error {
-				if _, err = strconv.ParseInt(s, 10, 64); err != nil {
-					color.Warn.Prompt("Lines must be a number")
-					return err
-				}
-				return nil
-			},
-		},
-	}, "Input window size:")
-	window, err := inputs.Run()
-	if err != nil {
-		return
-	}
-	cfg.Window.Dimensions.Columns, cfg.Window.Dimensions.Lines = 180, 50
-	if window[0] != "" {
-		columns, _ := strconv.ParseInt(window[0], 10, 64)
+	if s := input("Input window columns", "180", func(s string) error {
+		if s != "" {
+			if _, err := strconv.ParseUint(s, 10, 64); err != nil {
+				return fmt.Errorf("columns must be a number")
+			}
+		}
+		return nil
+	}); s != "" {
+		columns, _ := strconv.ParseUint(s, 10, 64)
 		cfg.Window.Dimensions.Columns = int(columns)
 	}
-	if window[1] != "" {
-		rows, _ := strconv.ParseInt(window[1], 10, 64)
-		cfg.Window.Dimensions.Lines = int(rows)
+	if s := input("Input window lines", "50", func(s string) error {
+		if s != "" {
+			if _, err := strconv.ParseUint(s, 10, 64); err != nil {
+				return fmt.Errorf("lines must be a number")
+			}
+		}
+		return nil
+	}); s != "" {
+		lines, _ := strconv.ParseUint(s, 10, 64)
+		cfg.Window.Dimensions.Lines = int(lines)
 	}
-	// window decorations
-	decorations := []string{
-		fmt.Sprintf("%s--Borders and title bar", color.Blue.Sprint("Full")),
-		fmt.Sprintf("%s--Neither borders nor title bar", color.Blue.Sprint("None")),
-		fmt.Sprintf("%s--Title bar, transparent background and title bar buttons(macOS only)", color.Blue.Sprint("Transparent")),
-		fmt.Sprintf("%s--Title bar, transparent background and no title bar buttons(macOS only)", color.Blue.Sprint("Buttonless")),
-	}
-	newSelect := prompt.NewSelect(decorations, "5. Choose window decorations:\n\n")
-	sel, err := newSelect.Run()
-	if err != nil {
-		return
-	}
-	cfg.Window.Decorations = color.ClearCode(strings.Split(sel, "--")[0])
 
-	startupModes := []string{
-		fmt.Sprintf("%s--Regular window", color.Blue.Sprint("Windowed")),
-		fmt.Sprintf("%s--The window will be maximized on startup", color.Blue.Sprint("Maximized")),
-		fmt.Sprintf("%s--The window will be fullscreened on startup", color.Blue.Sprint("Fullscreen")),
-		fmt.Sprintf("%s--Same as Fullscreen, but you can stack windows on top", color.Blue.Sprint("SimpleFullscreen")),
+	// window decorations
+	items := []Option{
+		{Name: "Full", Desc: "Borders and title bar"},
+		{Name: "None", Desc: "Neither borders nor title bar"},
+		{Name: "Transparent", Desc: "Title bar, transparent background and title bar buttons(macOS only)"},
+		{Name: "Buttonless", Desc: "Title bar, transparent background and no title bar buttons(macOS only)"},
 	}
-	newSelect = prompt.NewSelect(startupModes, "\nChoose Startup mode (changes require restart):\n\n")
-	sel, err = newSelect.Run()
-	if err != nil {
-		return
+	i := singleSelect("Choose window decorations", items)
+	cfg.Window.Decorations = items[i].Name
+
+	// opacity
+	if s := input("Input window opacity", "1.0", func(s string) error {
+		if s != "" {
+			opacity, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return fmt.Errorf("opacity must be a floating point number from 0.0 to 1.0")
+			}
+			if opacity < 0 || opacity > 1 {
+				return fmt.Errorf("opacity must be a floating point number from 0.0 to 1.0")
+			}
+		}
+		return nil
+	}); s != "" {
+		opacity, _ := strconv.ParseFloat(s, 64)
+		cfg.Window.Opacity = float32(opacity)
 	}
-	cfg.Window.StartupMode = color.ClearCode(strings.Split(sel, "--")[0])
 }
 
 func setFontCfg(cfg *config.Config) {
-	// font
-	newInput := prompt.NewInput("\nInput font(recommend nerd font):", "")
-	font, err := newInput.Run()
-	if err != nil {
-		return
-	}
-	cfg.Font.Normal.Family = font
-	// font size
-	newInput = prompt.NewInput("Input font size:", "15.0", func(s string) error {
-		if _, err = strconv.ParseFloat(s, 32); err != nil {
-			color.Warn.Prompt("Please enter a number")
-			return err
-		}
-		return nil
-	})
-	fontSize, err := newInput.Run()
-	if err != nil {
-		return
-	}
-	size, _ := strconv.ParseFloat(fontSize, 32)
-	if size != 0 {
-		cfg.Font.Size = float32(size)
+	if s := input("Input font(recommend nerd font)", "Menlo"); s != "" {
+		cfg.Font.Normal.Family = s
 	}
 }
 
 func setThemeCfg(cfg *config.Config) {
-	confirmChoices := []string{"Yes", "No"}
-	newSelect := prompt.NewSelect(confirmChoices, "Choose a theme:\n\n")
-	sel, err := newSelect.Run()
-	if err != nil {
+	if !confirm("Choose a theme") {
 		return
 	}
-	if sel == "Yes" {
-		i, err := displayTheme()
-		if err != nil {
-			color.Error.Prompt(err.Error())
-			return
-		}
-		th := themes.Themes[i]
-		var colors config.Config
-		if err = toml.Unmarshal(themes.ThemesMap[th], &colors); err != nil {
-			color.Error.Prompt(err.Error())
-			return
-		}
-		cfg.Colors = colors.Colors
+	i, err := displayTheme()
+	if err != nil {
+		os.Exit(1)
 	}
+	th := themes.Themes[i]
+	var colors config.Config
+	if err = toml.Unmarshal(themes.ThemesMap[th], &colors); err != nil {
+		os.Exit(1)
+	}
+	cfg.Colors = colors.Colors
 }
 
 func setCursorCfg(cfg *config.Config) {
-	newSelect := prompt.NewSelect([]string{"Block", "Underline", "Beam"}, "\nChoose cursor style:\n\n")
-	cursor, err := newSelect.Run()
-	if err != nil {
-		return
+	cursor := []Option{
+		{Name: "Block", Desc: "\u2588"},
+		{Name: "Underline", Desc: "\u2581"},
+		{Name: "Beam", Desc: "\u258F"},
 	}
-	if cursor != "" {
-		cfg.Cursor.Style.Shape = cursor
-	}
-	blinkings := []string{
-		fmt.Sprintf("%s--Prevent the cursor from ever blinking", color.Blue.Sprint("Never")),
-		fmt.Sprintf("%s--Disable blinking by default", color.Blue.Sprint("Off")),
-		fmt.Sprintf("%s--Enable blinking by default", color.Blue.Sprint("Never")),
-		fmt.Sprintf("%s--Force the cursor to always blink", color.Blue.Sprint("Always")),
-	}
-	newSelect = prompt.NewSelect(blinkings, "\n Choose cursor blinking:\n\n")
-	blinking, err := newSelect.Run()
-	if err != nil {
-		return
-	}
-	if cursor != "" {
-		cfg.Cursor.Style.Blinking = color.ClearCode(strings.Split(blinking, "--")[0])
 
+	i := singleSelect("Choose cursor blinking", cursor)
+	cfg.Cursor.Style.Shape = cursor[i].Name
+
+	items := []Option{
+		{Name: "Never", Desc: "Prevent the cursor from ever blinking"},
+		{Name: "Off", Desc: "Disable blinking by default"},
+		{Name: "On", Desc: "Enable blinking by default"},
+		{Name: "Always", Desc: "Force the cursor to always blink"},
 	}
-	if cfg.Cursor.Style.Blinking == "On" || cfg.Cursor.Style.Blinking == "Always" {
-		input := prompt.NewInput("\nInput Cursor blinking interval(milliseconds):", "750",
-			func(s string) error {
-				_, err = strconv.ParseInt(s, 10, 64)
-				if err != nil {
-					color.Warn.Prompt("Please enter a number")
-					return err
-				}
-				return nil
-			})
-		interval, err := input.Run()
-		if err != nil {
-			return
-		}
-		if interval != "" {
-			inter, _ := strconv.ParseInt(interval, 10, 64)
-			cfg.Cursor.BlinkInterval = int(inter)
-		}
+
+	i = singleSelect("Choose cursor blinking", items)
+	cfg.Cursor.Style.Blinking = items[i].Name
+}
+
+func input(label, d string, validate ...promptui.ValidateFunc) string {
+	t := promptui.Prompt{Label: label, Default: d}
+	if len(validate) > 0 {
+		t.Validate = validate[0]
 	}
+	s, err := t.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+	return s
+}
+
+func confirm(label string) bool {
+	confirmChoices := []string{"Yes", "No"}
+	newSelect := promptui.Select{Label: label, Items: confirmChoices}
+	_, sel, err := newSelect.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+	return sel == "Yes"
+}
+
+func singleSelect(label string, items any) int {
+	sel := promptui.Select{Label: label, Items: items, Templates: template}
+	i, _, err := sel.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+	return i
+}
+
+type Option struct {
+	Name string
+	Desc string
+}
+
+var template = &promptui.SelectTemplates{
+	Label:    "{{ . }}?",
+	Active:   fmt.Sprintf("%s {{ .Name | underline }}", promptui.IconSelect),
+	Inactive: "  {{.Name}}",
+	Selected: fmt.Sprintf(`{{ "%s" | green }} {{ .Name | faint }}`, promptui.IconGood),
+	Details:  `Desc: {{.Desc}}`,
 }

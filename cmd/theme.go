@@ -5,7 +5,7 @@ import (
 
 	"github.com/gookit/color"
 	"github.com/ktr0731/go-fuzzyfinder"
-	"github.com/ltfred/alacritty-config/pkg/config"
+	"github.com/ltfred/alacritty-config/config"
 	"github.com/ltfred/alacritty-config/themes"
 	"github.com/ltfred/alacritty-config/utils"
 	"github.com/pelletier/go-toml/v2"
