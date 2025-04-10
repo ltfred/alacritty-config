@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gookit/color"
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -26,32 +27,28 @@ var themeCmd = &cobra.Command{
 func theme(cmd *cobra.Command, args []string) {
 	i, err := displayTheme()
 	if err != nil {
-		color.Error.Prompt(err.Error())
-		return
+		dealError(err)
 	}
 	c := config.Config{}
 	path, _ := utils.GetConfigPath()
 	readConfig, err := c.ReadConfig(path)
 	if err != nil {
-		color.Error.Prompt(err.Error())
-		return
+		dealError(err)
 	}
 	th := themes.Themes[i]
 	var colors config.Config
 	err = toml.Unmarshal(themes.ThemesMap[th], &colors)
 	if err != nil {
-		color.Error.Prompt(err.Error())
-		return
+		dealError(err)
 	}
 	readConfig.Colors = colors.Colors
 	err = readConfig.WriteConfig()
 	if err != nil {
-		color.Error.Prompt(err.Error())
-		return
+		dealError(err)
 	}
-	color.Info.Prompt("Alacritty theme change to %s", th)
 
-	return
+	s := color.Style{color.FgGreen}
+	fmt.Println("Alacritty theme change to", s.Render(th))
 }
 
 func colorPrint(col string) string {
@@ -75,12 +72,9 @@ func displayTheme() (int, error) {
 
 			th := themes.Themes[i]
 			var colors config.Config
-			err := toml.Unmarshal(themes.ThemesMap[th], &colors)
-			if err != nil {
-				color.Error.Prompt(err.Error())
+			if err := toml.Unmarshal(themes.ThemesMap[th], &colors); err != nil {
 				return ""
 			}
-
 			return fmt.Sprintf("        Normal Bright\n  Black %s     %s\n    Red %s     %s\n  Green %s     %s\n"+
 				" Yellow %s     %s\n   Blue %s     %s\nMagenta %s     %s\n   Cyan %s     %s\n  White %s     %s",
 				colorPrint(colors.Colors.Normal.Black), colorPrint(colors.Colors.Bright.Black),
@@ -99,4 +93,9 @@ func displayTheme() (int, error) {
 	}
 
 	return idx[0], nil
+}
+
+func dealError(err error) {
+	color.Error.Prompt(err.Error())
+	os.Exit(1)
 }
