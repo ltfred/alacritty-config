@@ -72,12 +72,10 @@ func makeTerminalFormTab(_ fyne.Window) fyne.CanvasObject {
 	shell.SetPlaceHolder("/bin/zsh")
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "Shell", Widget: shell, HintText: ""},
+			{Text: "Shell", Widget: shell},
 		},
-		OnCancel: func() {
-		},
-		OnSubmit: func() {
-		},
+		OnCancel: func() {},
+		OnSubmit: func() {},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
 	return form
@@ -87,11 +85,10 @@ func makeCursorFormTab(_ fyne.Window) fyne.CanvasObject {
 	// style
 	style := widget.NewSelect([]string{"Block", "Underline", "Beam"}, func(s string) {})
 	style.SetSelected("Block")
-	//style.Horizontal = true
 	// blinking
 	blinking := widget.NewSelect([]string{"Never", "Off", "On", "Always"}, func(s string) {})
 	blinking.SetSelected("Off")
-	//blinking.Horizontal = true
+	// blinkInterval
 	blinkInterval := widget.NewEntry()
 	blinkInterval.SetPlaceHolder("750")
 	blinkInterval.Validator = func(s string) error {
@@ -105,18 +102,16 @@ func makeCursorFormTab(_ fyne.Window) fyne.CanvasObject {
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "Style", Widget: style, HintText: ""},
-			{Text: "Blinking", Widget: blinking, HintText: ""},
-			{Text: "Blink interval", Widget: blinkInterval, HintText: ""},
+			{Text: "Style", Widget: style},
+			{Text: "Blinking", Widget: blinking},
+			{Text: "Blink interval", Widget: blinkInterval},
 		},
 		OnCancel: func() {
 			style.SetSelected("Block")
 			blinking.SetSelected("Off")
 			blinkInterval.SetText("750")
 		},
-		OnSubmit: func() {
-
-		},
+		OnSubmit: func() {},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
 	return form
@@ -176,8 +171,8 @@ func makeFontFormTab(_ fyne.Window) fyne.CanvasObject {
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "Family", Widget: family, HintText: ""},
-			{Text: "Size", Widget: size, HintText: ""},
+			{Text: "Family", Widget: family},
+			{Text: "Size", Widget: size},
 		},
 		OnCancel: func() {
 			family.SetText(defaultFont)
@@ -217,10 +212,14 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 		}
 		return nil
 	}
+
 	// decorations
-	decorations := widget.NewRadioGroup([]string{"Full", "None", "Transparent", "Buttonless"}, func(s string) {})
+	decorationsChoices := []string{"Full", "None"}
+	if runtime.GOOS == "darwin" {
+		decorationsChoices = append(decorationsChoices, "Transparent", "Buttonless")
+	}
+	decorations := widget.NewSelect(decorationsChoices, func(s string) {})
 	decorations.SetSelected("Full")
-	decorations.Horizontal = true
 	// opacity
 	f := 1.0
 	data := binding.BindFloat(&f)
@@ -236,15 +235,23 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 		}
 		return nil
 	}
+	// startup mode
+	startupModeChoices := []string{"Windowed", "Maximized", "Fullscreen"}
+	if runtime.GOOS == "darwin" {
+		startupModeChoices = append(startupModeChoices, "SimpleFullscreen")
+	}
+	startupMode := widget.NewSelect(startupModeChoices, func(s string) {})
+	startupMode.SetSelected("Windowed")
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "Title", Widget: title, HintText: ""},
-			{Text: "Columns", Widget: column, HintText: ""},
-			{Text: "Lines", Widget: line, HintText: ""},
+			{Text: "Title", Widget: title},
+			{Text: "Columns", Widget: column},
+			{Text: "Lines", Widget: line},
 			{Text: "Decorations", Widget: decorations},
 			{Text: "Opacity", Widget: entry},
 			{Text: "", Widget: slide},
+			{Text: "Startup Mode", Widget: startupMode},
 		},
 		OnCancel: func() {
 			title.SetText("Alacritty")
@@ -252,10 +259,11 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 			line.SetText("50")
 			decorations.SetSelected("Full")
 			entry.SetText("1.0")
+			startupMode.SetSelected("Windowed")
 		},
-		OnSubmit: func() {
-		},
+		OnSubmit: func() {},
 	}
+
 	form.SubmitText, form.CancelText = "Save", "Reset"
 	return form
 }

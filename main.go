@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/cmd/fyne_demo/data"
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ltfred/alacritty-config-gui/menu"
 	"net/url"
@@ -17,17 +16,17 @@ var topWindow fyne.Window
 
 func main() {
 	a := app.NewWithID("io.fyne.demo")
-	//a.SetIcon(data.FyneLogo)
+	a.SetIcon(data.FyneLogo)
 	//makeTray(a)
 	//logLifecycle(a)
-	w := a.NewWindow("Fyne Demo")
+	w := a.NewWindow("Alacritty config")
 	//topWindow = w
 
 	w.SetMainMenu(makeMenu(a, w))
 	w.SetMaster()
 
 	content := container.NewStack()
-	title := widget.NewLabel("Component name")
+	title := widget.NewLabel("")
 
 	intro := widget.NewRichTextFromMarkdown("")
 	intro.Wrapping = fyne.TextWrapWord
@@ -51,37 +50,15 @@ func main() {
 }
 
 func makeMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
-	newItem := fyne.NewMenuItem("New", nil)
-	checkedItem := fyne.NewMenuItem("Checked", nil)
-	checkedItem.Checked = true
-	disabledItem := fyne.NewMenuItem("Disabled", nil)
-	disabledItem.Disabled = true
-	otherItem := fyne.NewMenuItem("Other", nil)
-	mailItem := fyne.NewMenuItem("Mail", func() { fmt.Println("Menu New->Other->Mail") })
-	mailItem.Icon = theme.MailComposeIcon()
-	otherItem.ChildMenu = fyne.NewMenu("",
-		fyne.NewMenuItem("Project", func() { fmt.Println("Menu New->Other->Project") }),
-		mailItem,
-	)
-	fileItem := fyne.NewMenuItem("File", func() { fmt.Println("Menu New->File") })
-	fileItem.Icon = theme.FileIcon()
-	dirItem := fyne.NewMenuItem("Directory", func() { fmt.Println("Menu New->Directory") })
-	dirItem.Icon = theme.FolderIcon()
-	newItem.ChildMenu = fyne.NewMenu("",
-		fileItem,
-		dirItem,
-		otherItem,
-	)
-
 	openSettings := func() {
-		w := a.NewWindow("Fyne Settings")
+		w := a.NewWindow("Settings")
 		w.SetContent(settings.NewSettings().LoadAppearanceScreen(w))
 		w.Resize(fyne.NewSize(440, 520))
 		w.Show()
 	}
 	showAbout := func() {
 		w := a.NewWindow("About")
-		w.SetContent(widget.NewLabel("About Fyne Demo app..."))
+		w.SetContent(widget.NewLabel("Alacritty config"))
 		w.Show()
 	}
 	aboutItem := fyne.NewMenuItem("About", showAbout)
@@ -107,12 +84,6 @@ func makeMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 		shortcutFocused(pasteShortcut, a.Clipboard(), w.Canvas().Focused())
 	})
 	pasteItem.Shortcut = pasteShortcut
-	performFind := func() { fmt.Println("Menu Find") }
-	findItem := fyne.NewMenuItem("Find", performFind)
-	findItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierShortcutDefault | fyne.KeyModifierAlt | fyne.KeyModifierShift | fyne.KeyModifierControl | fyne.KeyModifierSuper}
-	w.Canvas().AddShortcut(findItem.Shortcut, func(shortcut fyne.Shortcut) {
-		performFind()
-	})
 
 	helpMenu := fyne.NewMenu("Help",
 		fyne.NewMenuItem("Documentation", func() {
@@ -120,7 +91,7 @@ func makeMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 			_ = a.OpenURL(u)
 		}),
 		fyne.NewMenuItem("Support", func() {
-			u, _ := url.Parse("https://fyne.io/support/")
+			u, _ := url.Parse("https://github.com/ltfred/alacritty-config")
 			_ = a.OpenURL(u)
 		}),
 		fyne.NewMenuItemSeparator(),
@@ -130,7 +101,7 @@ func makeMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 		}))
 
 	// a quit item will be appended to our first (File) menu
-	file := fyne.NewMenu("File", newItem, checkedItem, disabledItem)
+	file := fyne.NewMenu("")
 	device := fyne.CurrentDevice()
 	if !device.IsMobile() && !device.IsBrowser() {
 		file.Items = append(file.Items, fyne.NewMenuItemSeparator(), settingsItem)
@@ -138,13 +109,9 @@ func makeMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 	file.Items = append(file.Items, aboutItem)
 	main := fyne.NewMainMenu(
 		file,
-		fyne.NewMenu("Edit", cutItem, copyItem, pasteItem, fyne.NewMenuItemSeparator(), findItem),
+		fyne.NewMenu("Edit", cutItem, copyItem, pasteItem, fyne.NewMenuItemSeparator()),
 		helpMenu,
 	)
-	checkedItem.Action = func() {
-		checkedItem.Checked = !checkedItem.Checked
-		main.Refresh()
-	}
 	return main
 }
 
