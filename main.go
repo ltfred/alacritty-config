@@ -8,13 +8,13 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
+	"github.com/ltfred/alacritty-config-gui/config"
 	"github.com/ltfred/alacritty-config-gui/menu"
 	"net/url"
 )
 
-var topWindow fyne.Window
-
 func main() {
+	config.SetConfig()
 	a := app.NewWithID("io.fyne.demo")
 	a.SetIcon(data.FyneLogo)
 	//makeTray(a)

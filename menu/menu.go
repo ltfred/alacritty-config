@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/ltfred/alacritty-config-gui/config"
 	"github.com/ltfred/alacritty-config-gui/themes"
 	"runtime"
 	"strconv"
@@ -84,13 +85,34 @@ func makeTerminalFormTab(_ fyne.Window) fyne.CanvasObject {
 func makeCursorFormTab(_ fyne.Window) fyne.CanvasObject {
 	// style
 	style := widget.NewSelect([]string{"Block", "Underline", "Beam"}, func(s string) {})
-	style.SetSelected("Block")
+	setStyle := func() {
+		if config.Cfg.Cursor.Style.Shape != "" {
+			style.SetSelected(config.Cfg.Cursor.Style.Shape)
+		} else {
+			style.SetSelected("Block")
+		}
+	}
+	setStyle()
 	// blinking
 	blinking := widget.NewSelect([]string{"Never", "Off", "On", "Always"}, func(s string) {})
-	blinking.SetSelected("Off")
+	setBlinking := func() {
+		if config.Cfg.Cursor.Style.Shape != "" {
+			blinking.SetSelected(config.Cfg.Cursor.Style.Blinking)
+		} else {
+			blinking.SetSelected("Off")
+		}
+	}
+	setBlinking()
 	// blinkInterval
 	blinkInterval := widget.NewEntry()
-	blinkInterval.SetPlaceHolder("750")
+	setBlinkInterval := func() {
+		if config.Cfg.Cursor.BlinkInterval != 0 {
+			blinkInterval.SetText(strconv.Itoa(config.Cfg.Cursor.BlinkInterval))
+		} else {
+			blinkInterval.SetPlaceHolder("750")
+		}
+	}
+	setBlinkInterval()
 	blinkInterval.Validator = func(s string) error {
 		if s != "" {
 			if _, err := strconv.ParseInt(s, 10, 64); err != nil {
@@ -107,11 +129,22 @@ func makeCursorFormTab(_ fyne.Window) fyne.CanvasObject {
 			{Text: "Blink interval", Widget: blinkInterval},
 		},
 		OnCancel: func() {
-			style.SetSelected("Block")
-			blinking.SetSelected("Off")
-			blinkInterval.SetText("750")
+			setStyle()
+			setBlinking()
+			setBlinkInterval()
 		},
-		OnSubmit: func() {},
+		OnSubmit: func() {
+			config.Cfg.Cursor.Style.Shape = style.Selected
+			config.Cfg.Cursor.Style.Blinking = blinking.Selected
+			if blinkInterval.Text != "" {
+				i, _ := strconv.ParseInt(blinkInterval.Text, 10, 64)
+				config.Cfg.Cursor.BlinkInterval = int(i)
+			} else {
+				blinkInterval.SetText("750")
+				config.Cfg.Cursor.BlinkInterval = 750
+			}
+			writeConfig()
+		},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
 	return form
@@ -120,24 +153,47 @@ func makeCursorFormTab(_ fyne.Window) fyne.CanvasObject {
 func makeSelectionFormTab(_ fyne.Window) fyne.CanvasObject {
 	// semanticEscapeChars
 	semanticEscapeChars := widget.NewEntry()
-	semanticEscapeChars.SetPlaceHolder(",│`|:\\\"' ()[]{}<>\\t")
+	setSemanticEscapeChars := func() {
+		if config.Cfg.Selection.SemanticEscapeChars != "" {
+			semanticEscapeChars.SetText(config.Cfg.Selection.SemanticEscapeChars)
+		} else {
+			semanticEscapeChars.SetPlaceHolder(",│`|:\"' ()[]{}<>\t")
+		}
+	}
+	setSemanticEscapeChars()
+
 	// saveToClipboard
 	saveToClipboard := widget.NewRadioGroup([]string{"true", "false"}, func(s string) {
 	})
-	saveToClipboard.SetSelected("false")
 	saveToClipboard.Horizontal = true
-
+	setSaveToClipboard := func() {
+		if config.Cfg.Selection.SaveToClipboard {
+			saveToClipboard.SetSelected("true")
+		} else {
+			saveToClipboard.SetSelected("false")
+		}
+	}
+	setSaveToClipboard()
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "Semantic escape chars", Widget: semanticEscapeChars, HintText: ""},
-			{Text: "Save to clipboard", Widget: saveToClipboard, HintText: ""},
+			{Text: "Semantic escape chars", Widget: semanticEscapeChars},
+			{Text: "Save to clipboard", Widget: saveToClipboard},
 		},
 		OnCancel: func() {
-			semanticEscapeChars.SetText(",│`|:\\\"' ()[]{}<>\\t")
-			saveToClipboard.SetSelected("false")
+			setSemanticEscapeChars()
+			setSaveToClipboard()
 		},
 		OnSubmit: func() {
-
+			if semanticEscapeChars.Text == "" {
+				semanticEscapeChars.SetText(",│`|:\"' ()[]{}<>\t")
+			}
+			config.Cfg.Selection.SemanticEscapeChars = semanticEscapeChars.Text
+			if saveToClipboard.Selected == "true" {
+				config.Cfg.Selection.SaveToClipboard = true
+			} else {
+				config.Cfg.Selection.SaveToClipboard = false
+			}
+			writeConfig()
 		},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
@@ -156,10 +212,24 @@ func makeFontFormTab(_ fyne.Window) fyne.CanvasObject {
 	}
 	// family
 	family := widget.NewEntry()
-	family.SetPlaceHolder(defaultFont)
+	setFamily := func() {
+		if config.Cfg.Font.Normal.Family != "" {
+			family.SetText(config.Cfg.Font.Normal.Family)
+		} else {
+			family.SetText(defaultFont)
+		}
+	}
+	setFamily()
 	// size
 	size := widget.NewEntry()
-	size.SetPlaceHolder("11.25")
+	setSize := func() {
+		if config.Cfg.Font.Size != 0 {
+			size.SetText(fmt.Sprintf("%v", config.Cfg.Font.Size))
+		} else {
+			size.SetText("11.25")
+		}
+	}
+	setSize()
 	size.Validator = func(s string) error {
 		if s != "" {
 			if _, err := strconv.ParseFloat(s, 64); err != nil {
@@ -175,11 +245,20 @@ func makeFontFormTab(_ fyne.Window) fyne.CanvasObject {
 			{Text: "Size", Widget: size},
 		},
 		OnCancel: func() {
-			family.SetText(defaultFont)
-			size.SetText("11.25")
+			setFamily()
+			setSize()
 		},
 		OnSubmit: func() {
-
+			if family.Text == "" {
+				family.SetText(defaultFont)
+			}
+			if size.Text == "" {
+				size.SetText("11.25")
+			}
+			s, _ := strconv.ParseFloat(size.Text, 64)
+			config.Cfg.Font.Size = float32(s)
+			config.Cfg.Font.Normal.Family = family.Text
+			writeConfig()
 		},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
@@ -189,10 +268,24 @@ func makeFontFormTab(_ fyne.Window) fyne.CanvasObject {
 func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 	// title
 	title := widget.NewEntry()
-	title.SetPlaceHolder("Alacritty")
+	setTitle := func() {
+		if config.Cfg.Window.Title != "" {
+			title.SetText(config.Cfg.Window.Title)
+		} else {
+			title.SetPlaceHolder("Alacritty")
+		}
+	}
+	setTitle()
 	// columns
 	column := widget.NewEntry()
-	column.SetPlaceHolder("180")
+	setColumns := func() {
+		if config.Cfg.Window.Dimensions.Columns != 0 {
+			column.SetText(strconv.Itoa(int(config.Cfg.Window.Dimensions.Columns)))
+		} else {
+			column.SetPlaceHolder("180")
+		}
+	}
+	setColumns()
 	column.Validator = func(s string) error {
 		if s != "" {
 			if _, err := strconv.ParseInt(s, 10, 64); err != nil {
@@ -203,7 +296,14 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 	}
 	// lines
 	line := widget.NewEntry()
-	line.SetPlaceHolder("50")
+	setLines := func() {
+		if config.Cfg.Window.Dimensions.Lines != 0 {
+			line.SetText(strconv.Itoa(int(config.Cfg.Window.Dimensions.Lines)))
+		} else {
+			line.SetPlaceHolder("50")
+		}
+	}
+	setLines()
 	line.Validator = func(s string) error {
 		if s != "" {
 			if _, err := strconv.ParseInt(s, 10, 64); err != nil {
@@ -219,9 +319,22 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 		decorationsChoices = append(decorationsChoices, "Transparent", "Buttonless")
 	}
 	decorations := widget.NewSelect(decorationsChoices, func(s string) {})
-	decorations.SetSelected("Full")
+	setDecorations := func() {
+		if config.Cfg.Window.Decorations != "" {
+			decorations.SetSelected(config.Cfg.Window.Decorations)
+		} else {
+			decorations.SetSelected("Full")
+		}
+	}
+	setDecorations()
+
 	// opacity
-	f := 1.0
+	var f float64
+	if config.Cfg.Window.Opacity != 0 {
+		f = float64(config.Cfg.Window.Opacity)
+	} else {
+		f = 1
+	}
 	data := binding.BindFloat(&f)
 	slide := widget.NewSliderWithData(0, 1, data)
 	slide.Step = 0.1
@@ -241,8 +354,14 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 		startupModeChoices = append(startupModeChoices, "SimpleFullscreen")
 	}
 	startupMode := widget.NewSelect(startupModeChoices, func(s string) {})
-	startupMode.SetSelected("Windowed")
-
+	setStartupMode := func() {
+		if config.Cfg.Window.StartupMode != "" {
+			startupMode.SetSelected(config.Cfg.Window.StartupMode)
+		} else {
+			startupMode.SetSelected("Windowed")
+		}
+	}
+	setStartupMode()
 	form := &widget.Form{
 		Items: []*widget.FormItem{
 			{Text: "Title", Widget: title},
@@ -254,14 +373,30 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 			{Text: "Startup Mode", Widget: startupMode},
 		},
 		OnCancel: func() {
-			title.SetText("Alacritty")
-			column.SetText("180")
-			line.SetText("50")
-			decorations.SetSelected("Full")
-			entry.SetText("1.0")
-			startupMode.SetSelected("Windowed")
+			setTitle()
+			setColumns()
+			setLines()
+			setDecorations()
+			setStartupMode()
 		},
-		OnSubmit: func() {},
+		OnSubmit: func() {
+			if title.Text == "" {
+				title.SetText("Alacritty")
+			}
+			if column.Text == "" {
+				column.SetText("180")
+			}
+			if line.Text == "" {
+				line.SetText("50")
+			}
+			config.Cfg.Window.Title = title.Text
+			config.Cfg.Window.Dimensions.Columns, _ = strconv.ParseInt(column.Text, 10, 64)
+			config.Cfg.Window.Dimensions.Lines, _ = strconv.ParseInt(line.Text, 10, 64)
+			config.Cfg.Window.Decorations = decorations.Selected
+			config.Cfg.Window.Opacity = float32(f)
+			config.Cfg.Window.StartupMode = startupMode.Selected
+			writeConfig()
+		},
 	}
 
 	form.SubmitText, form.CancelText = "Save", "Reset"
@@ -271,7 +406,14 @@ func makeWindowFormTab(_ fyne.Window) fyne.CanvasObject {
 func makeScrollingFormTab(_ fyne.Window) fyne.CanvasObject {
 	// history
 	history := widget.NewEntry()
-	history.SetPlaceHolder("10000")
+	setHistory := func() {
+		if config.Cfg.Scrolling.History != 0 {
+			history.SetText(strconv.Itoa(int(config.Cfg.Scrolling.History)))
+		} else {
+			history.SetPlaceHolder("10000")
+		}
+	}
+	setHistory()
 	history.Validator = func(s string) error {
 		if s != "" {
 			i, err := strconv.ParseInt(s, 10, 64)
@@ -286,7 +428,14 @@ func makeScrollingFormTab(_ fyne.Window) fyne.CanvasObject {
 	}
 	// multiplier
 	multiplier := widget.NewEntry()
-	multiplier.SetPlaceHolder("3")
+	setMultiplier := func() {
+		if config.Cfg.Scrolling.Multiplier != 0 {
+			multiplier.SetText(strconv.Itoa(int(config.Cfg.Scrolling.Multiplier)))
+		} else {
+			multiplier.SetPlaceHolder("3")
+		}
+	}
+	setMultiplier()
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{
@@ -294,10 +443,19 @@ func makeScrollingFormTab(_ fyne.Window) fyne.CanvasObject {
 			{Text: "Multiplier", Widget: multiplier},
 		},
 		OnCancel: func() {
-			history.SetText("10000")
-			multiplier.SetText("3")
+			setHistory()
+			setMultiplier()
 		},
-		OnSubmit: func() {},
+		OnSubmit: func() {
+			if history.Text == "" {
+				history.SetText("10000")
+			}
+			if multiplier.Text == "" {
+				multiplier.SetText("3")
+			}
+			config.Cfg.Scrolling.History, _ = strconv.ParseInt(history.Text, 10, 64)
+			config.Cfg.Scrolling.Multiplier, _ = strconv.ParseInt(multiplier.Text, 10, 64)
+		},
 	}
 	form.SubmitText, form.CancelText = "Save", "Reset"
 
@@ -408,4 +566,15 @@ func MakeNav(setTutorial func(menu Menu), loadPrevious bool) fyne.CanvasObject {
 	)
 
 	return container.NewBorder(nil, themes, nil, nil, tree)
+}
+
+func writeConfig() {
+	msg := "Cursor setting succeeded"
+	if err := config.WriteConfig(config.Cfg); err != nil {
+		msg = "Cursor setting failed"
+	}
+	fyne.CurrentApp().SendNotification(&fyne.Notification{
+		Title:   "Alacritty config",
+		Content: msg,
+	})
 }
