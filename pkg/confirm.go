@@ -10,62 +10,27 @@ import (
 type confirmModel struct {
 	title       string
 	yesSelected bool
-	focused     bool
-	height      int
-	width       int
-	confirmed   bool
 }
 
 func (m confirmModel) Init() tea.Cmd {
 	return nil
 }
 
-func newConfirmModel(title string, height, width int) confirmModel {
+func newConfirmModel(title string) confirmModel {
 	return confirmModel{
 		title:       title,
 		yesSelected: true,
-		focused:     true,
-		height:      height,
-		width:       width,
-		confirmed:   false,
 	}
 }
 
 func (m confirmModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := message.(type) {
-	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
-
-	case tea.KeyMsg:
-		if !m.focused {
-			return m, nil
-		}
-		switch msg.String() {
-		case "left", "h", "a":
-			m.yesSelected = !m.yesSelected
-		case "right", "l", "d":
-			m.yesSelected = !m.yesSelected
-		case " ", "enter":
-			return NewThemeChooseModel(m.width, m.height), nil
-		case "y":
-			m.yesSelected = true
-			m.confirmed = true
-			return NewThemeChooseModel(m.width, m.height), nil
-		case "n":
-			m.yesSelected = false
-			m.confirmed = true
-			return NewThemeChooseModel(m.width, m.height), nil
-		case "q", "esc", "ctrl+c":
-			m.yesSelected = false
-			return NewThemeChooseModel(m.width, m.height), nil
-		}
-	}
-
 	return m, nil
 }
 
 func (m confirmModel) View() string {
+	if m.title == "" {
+		return ""
+	}
 	yesStyle := lipgloss.NewStyle().Padding(0, 1)
 	noStyle := lipgloss.NewStyle().Padding(0, 1)
 	if m.yesSelected {
@@ -83,16 +48,12 @@ func (m confirmModel) View() string {
 		m.title,
 		yesBtn,
 		noBtn)
-
+	width, height := lipgloss.Size(content)
 	style := lipgloss.NewStyle().
-		Height(m.height).
-		Width(m.width).
+		Height(height+2).
+		Width(width+4).
 		Align(lipgloss.Center, lipgloss.Center).
 		Background(lipgloss.Color("#000000"))
 
 	return style.Render(content)
-}
-
-func (m confirmModel) IsConfirmed() bool {
-	return m.confirmed && m.yesSelected
 }

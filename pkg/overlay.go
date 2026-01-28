@@ -9,9 +9,11 @@ import (
 )
 
 type OverlayModel struct {
-	background tea.Model
-	foreground tea.Model
-	theme      theme
+	background   liveMode
+	foreground   confirmModel
+	theme        theme
+	leftWidth    int
+	isConfirming bool
 }
 
 func (m *OverlayModel) Init() tea.Cmd {
@@ -19,20 +21,26 @@ func (m *OverlayModel) Init() tea.Cmd {
 }
 
 func (m *OverlayModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := message.(type) {
+	case tea.WindowSizeMsg:
+		m.background.maxHeight = msg.Height
+		m.background.maxWidth = msg.Width - m.leftWidth
+
+	case tea.KeyMsg:
+	}
 	return m, nil
 }
 
 func (m *OverlayModel) View() string {
-	if m.foreground == nil && m.background == nil {
+	if m.foreground.title == "" && m.background.View() == "" {
 		return ""
 	}
-	if m.foreground == nil && m.background != nil {
+	if m.foreground.View() == "" && m.background.View() != "" {
 		return m.background.View()
 	}
-	if m.foreground != nil && m.background == nil {
+	if m.foreground.View() != "" && m.background.View() == "" {
 		return m.background.View()
 	}
-
 	return Composite(
 		m.foreground.View(),
 		m.background.View(),

@@ -7,7 +7,7 @@ import (
 )
 
 func FuzzyThemes() {
-	p := tea.NewProgram(NewThemeChooseModel(0, 0), tea.WithAltScreen())
+	p := tea.NewProgram(NewThemeChooseModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}

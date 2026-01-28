@@ -15,45 +15,59 @@ func (m ThemeChooseModel) Init() tea.Cmd {
 	return nil
 }
 
-func NewThemeChooseModel(maxWidth int, maxHeight int) ThemeChooseModel {
+func NewThemeChooseModel() ThemeChooseModel {
 	items, width := themeList()
 	l := list.New(items, itemDelegate{}, width, 0)
 	l.Title = "Select a theme"
 	l.SetShowPagination(true)
 	l.SetShowHelp(false)
-	right := liveMode{theme: themes[0]}
-	if maxWidth > 0 {
-		right.maxWidth = maxWidth - width
-	}
-	if maxHeight > 0 {
-		right.maxHeight = maxHeight
-		l.SetHeight(maxHeight)
-	}
 
-	return ThemeChooseModel{left: l, right: right}
+	right := liveMode{theme: themes[0]}
+	over := OverlayModel{theme: themes[0], background: right}
+
+	return ThemeChooseModel{left: l, right: over}
 }
 
 func (m ThemeChooseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case tea.WindowSizeMsg:
 		m.left.SetHeight(msg.Height)
-		m.right.maxWidth = msg.Width - m.left.Width()
-		m.right.maxHeight = msg.Height
+		m.right.background.maxWidth = msg.Width - m.left.Width()
+		m.right.background.maxHeight = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":
 			return m, tea.Quit
 		case "j", "down":
+			if m.right.isConfirming {
+				return m, nil
+			}
 			m.left.CursorDown()
 		case "k", "up":
+			if m.right.isConfirming {
+				return m, nil
+			}
 			m.left.CursorUp()
 		case "enter":
-			confirm := newConfirmModel(themes[m.left.Cursor()].name, m.left.Height(), m.left.Width()+m.right.maxWidth)
-			return confirm, tea.EnterAltScreen
+			if !m.right.isConfirming {
+				m.right.foreground = newConfirmModel(themes[m.left.Cursor()].name)
+				m.right.isConfirming = true
+				return m, nil
+			}
+			m.right.isConfirming = false
+			_ = m.right.foreground.yesSelected
+			m.right.foreground = confirmModel{}
+			return m, nil
+
+		case "left", "right":
+			if m.right.isConfirming {
+				m.right.foreground.yesSelected = !m.right.foreground.yesSelected
+			}
 		}
 	}
 	s := themes[m.left.Cursor()]
-	m.right.theme = s
+	m.right.background.theme = s
+	m.right.leftWidth = m.left.Width()
 	m.right.Update(message)
 
 	return m, nil
