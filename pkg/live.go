@@ -21,14 +21,6 @@ func (m liveMode) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func newLive(them theme, maxHeight int, maxWidth int) *liveMode {
-	return &liveMode{
-		theme:     them,
-		maxWidth:  maxWidth,
-		maxHeight: maxHeight,
-	}
-}
-
 func (m liveMode) View() string {
 	theme := decodeTheme(m.theme.data)
 	backgroundStyle := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background))

@@ -19,6 +19,15 @@ var catppuccinMacchiato string
 //go:embed files/catppuccin-mocha.toml
 var catppuccinMocha string
 
+//go:embed files/snazzy.toml
+var snazzy string
+
+//go:embed files/solarized-dark.toml
+var solarizedDark string
+
+//go:embed files/solarized-light.toml
+var solarizedLight string
+
 var themes = []theme{
 	{
 		name: "catppuccin-frappe",
@@ -35,6 +44,18 @@ var themes = []theme{
 	{
 		name: "catppuccin-mocha",
 		data: catppuccinMocha,
+	},
+	{
+		name: "snazzy",
+		data: snazzy,
+	},
+	{
+		name: "solarized-dark",
+		data: solarizedDark,
+	},
+	{
+		name: "solarized-light",
+		data: solarizedLight,
 	},
 }
 
