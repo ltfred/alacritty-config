@@ -44,42 +44,43 @@ func (m liveMode) View() string {
 	}
 	colorBlock := renderColorBlock(theme.Colors.Primary.Background, theme.Colors.Primary.Foreground, colors)
 
-	alacritty := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	alacritty := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Cyan,
 		Dark:  theme.Colors.Normal.Cyan,
 	}).Render("alacritty")
 
-	branch := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	branch := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Blue,
 		Dark:  theme.Colors.Normal.Blue,
 	}).Render("\uF418 main")
 
-	stash := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	stash := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Red,
 		Dark:  theme.Colors.Normal.Red,
 	}).Render("[+]")
 
-	program := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	program := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Yellow,
 		Dark:  theme.Colors.Normal.Yellow,
-	}).Render("\uE627 v1.26")
+	}).Render("\uE626 v1.26")
 
-	on := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
-		Light: theme.Colors.Bright.Yellow,
-		Dark:  theme.Colors.Normal.Yellow,
-	}).Render("on")
-
-	via := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	on := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Yellow,
 		Dark:  theme.Colors.Normal.Yellow,
 	}).Render("on")
+	via := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
+		Light: theme.Colors.Bright.Yellow,
+		Dark:  theme.Colors.Normal.Yellow,
+	}).Render("via")
 
-	k8s := lipgloss.NewStyle().Background(lipgloss.Color(theme.Colors.Primary.Background)).Padding(1, 1).Foreground(lipgloss.AdaptiveColor{
+	blank := backgroundStyle.Render(" ")
+
+	k8s := backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: theme.Colors.Bright.Blue,
 		Dark:  theme.Colors.Normal.Blue,
 	}).Render("\uE81D (alacritty-env)")
 
-	prompt := backgroundStyle.Width(m.maxWidth).Render(lipgloss.JoinHorizontal(lipgloss.Left, alacritty, on, branch, stash, via, program, k8s))
+	prompt := backgroundStyle.Padding(1, 1).Width(m.maxWidth).Render(alacritty + blank + on + blank + branch + blank + stash + blank + program + blank + via + blank + k8s)
 
 	view := lipgloss.JoinVertical(
 		lipgloss.Top,
