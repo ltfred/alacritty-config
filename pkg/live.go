@@ -33,15 +33,27 @@ func (m liveMode) View() string {
 		m.renderColorName(),
 		m.renderColorBlock(),
 		m.renderPrompt(),
-		//backgroundStyle.Width(m.maxWidth).Render("\uF51F"),
+		m.renderArrow(),
 	)
 
 	return m.backgroundStyle.Height(m.maxHeight).Width(m.maxWidth).Render(view)
 }
 
+func (m liveMode) renderArrow() string {
+	arrow := m.backgroundStyle.Bold(true).Foreground(lipgloss.AdaptiveColor{
+		Light: m.t.Colors.Bright.Green,
+		Dark:  m.t.Colors.Normal.Green,
+	}).Render("\U000F17A9 alacritty")
+	cmd := m.backgroundStyle.Foreground(lipgloss.AdaptiveColor{
+		Light: m.t.Colors.Primary.BrightForeground,
+		Dark:  m.t.Colors.Primary.Foreground,
+	}).Render(" themes")
+
+	return m.backgroundStyle.Width(m.maxWidth).Render(lipgloss.JoinHorizontal(lipgloss.Center, arrow, cmd))
+}
+
 func (m liveMode) renderColorName() string {
-	backgroundStyle := lipgloss.NewStyle().Background(lipgloss.Color(m.t.Colors.Primary.Background))
-	return backgroundStyle.Bold(true).Italic(true).
+	return m.backgroundStyle.Bold(true).Italic(true).
 		Width(m.maxWidth).Foreground(lipgloss.AdaptiveColor{
 		Light: m.t.Colors.Primary.BrightForeground,
 		Dark:  m.t.Colors.Primary.Foreground,
@@ -57,7 +69,7 @@ func (m liveMode) renderPrompt() string {
 	branch := m.backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: m.t.Colors.Bright.Blue,
 		Dark:  m.t.Colors.Normal.Blue,
-	}).Render("\uF418 main")
+	}).Render("\uF418 master")
 
 	stash := m.backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: m.t.Colors.Bright.Red,
@@ -67,7 +79,7 @@ func (m liveMode) renderPrompt() string {
 	program := m.backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: m.t.Colors.Bright.Yellow,
 		Dark:  m.t.Colors.Normal.Yellow,
-	}).Render("\U000F07D3 v1.26")
+	}).Render("\uE627 v1.26")
 
 	on := m.backgroundStyle.Foreground(lipgloss.AdaptiveColor{
 		Light: m.t.Colors.Bright.Yellow,
@@ -120,7 +132,7 @@ func (m liveMode) renderColorBlock() string {
 				m.backgroundStyle.Width(7).Height(3).Foreground(lipgloss.Color(m.t.Colors.Primary.Foreground)).Render("Bright"),
 			),
 		),
-		lipgloss.NewStyle().Width(2).Height(9).Background(lipgloss.Color(m.t.Colors.Primary.Background)).Render(""),
+		m.backgroundStyle.Width(2).Height(9).Render(""),
 	)
 
 	for i, color := range colors {
@@ -140,5 +152,5 @@ func (m liveMode) renderColorBlock() string {
 		}
 		allElements = append(allElements, s)
 	}
-	return m.backgroundStyle.Width(m.maxWidth).Render(lipgloss.JoinHorizontal(lipgloss.Left, allElements...))
+	return m.backgroundStyle.Width(m.maxWidth).Padding(2, 0).Render(lipgloss.JoinHorizontal(lipgloss.Left, allElements...))
 }
