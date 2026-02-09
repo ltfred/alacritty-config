@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"os"
-	"strconv"
+	"log"
 
-	"github.com/charmbracelet/huh"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ltfred/alacritty/pkg"
 	"github.com/spf13/cobra"
 )
 
@@ -26,69 +26,7 @@ func init() {
 }
 
 func config(cmd *cobra.Command, args []string) {
-	var (
-		decorations string
-		startupMode string
-		columns     string
-		lines       string
-		opacity     string
-
-		font     string
-		fontSize string
-	)
-
-	f := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Choose decorations").
-				Options(
-					huh.NewOption("Full", "Full"),
-					huh.NewOption("None", "None"),
-					huh.NewOption("Transparent(macOS only)", "Transparent"),
-					huh.NewOption("Buttonless(macOS only)", "Buttonless"),
-				).Value(&decorations),
-
-			huh.NewSelect[string]().
-				Title("Choose startup_mode").
-				Options(
-					huh.NewOption("Windowed", "Windowed"),
-					huh.NewOption("Maximized", "Maximized"),
-					huh.NewOption("Fullscreen", "Fullscreen"),
-					huh.NewOption("SimpleFullscreen(macOS only)", "SimpleFullscreen"),
-				).Value(&startupMode),
-		),
-
-		huh.NewGroup(
-			huh.NewInput().Title("Input columns").Placeholder("180").Value(&columns).Validate(func(s string) error {
-				if s != "" {
-					_, err := strconv.Atoi(s)
-					return err
-				}
-				return nil
-			}),
-			huh.NewInput().Title("Input lines").Placeholder("50").Value(&lines).Validate(func(s string) error {
-				if s != "" {
-					_, err := strconv.Atoi(s)
-					return err
-				}
-				return nil
-			}),
-			huh.NewInput().Title("Input opacity").Placeholder("1.0").Value(&opacity).Validate(func(s string) error {
-				if s != "" {
-					_, err := strconv.ParseFloat(s, 64)
-					return err
-				}
-				return nil
-			}),
-		),
-
-		huh.NewGroup(
-			huh.NewInput().Title("Input font").Value(&font),
-			huh.NewInput().Title("Input font size").Value(&fontSize),
-		),
-	)
-
-	if err := f.Run(); err != nil {
-		os.Exit(1)
+	if _, err := tea.NewProgram(pkg.NewConfigModel(), tea.WithAltScreen()).Run(); err != nil {
+		log.Fatal(err)
 	}
 }

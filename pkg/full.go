@@ -4,11 +4,14 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/ltfred/alacritty/pkg/themes"
 )
 
 type ThemeChooseModel struct {
 	left  list.Model
 	right OverlayModel
+
+	themes []themes.Theme
 }
 
 func (m ThemeChooseModel) Init() tea.Cmd {
@@ -16,16 +19,27 @@ func (m ThemeChooseModel) Init() tea.Cmd {
 }
 
 func NewThemeChooseModel() ThemeChooseModel {
-	items, width := themeList()
+	items, width, themes := themeList()
 	l := list.New(items, itemDelegate{}, width, 0)
 	l.Title = "Select a theme"
 	l.SetShowPagination(true)
 	l.SetShowHelp(false)
 
-	right := liveMode{theme: themes[0]}
+	right := themeModel{theme: themes[0]}
 	over := OverlayModel{theme: themes[0], background: right}
 
-	return ThemeChooseModel{left: l, right: over}
+	return ThemeChooseModel{left: l, right: over, themes: themes}
+}
+
+func themeList() ([]list.Item, int, []themes.Theme) {
+	themeData := themes.GetThemes()
+	l := make([]list.Item, 0, len(themeData))
+	maxWidth := 0
+	for _, theme := range themeData {
+		l = append(l, item(theme.Name))
+		maxWidth = max(maxWidth, len(theme.Name))
+	}
+	return l, maxWidth + 5, themeData
 }
 
 func (m ThemeChooseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
@@ -50,7 +64,7 @@ func (m ThemeChooseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.left.CursorUp()
 		case "enter":
 			if !m.right.isConfirming {
-				m.right.foreground = newConfirmModel(themes[m.left.Cursor()].name)
+				m.right.foreground = newConfirmModel(m.themes[m.left.Cursor()].Name)
 				m.right.isConfirming = true
 				return m, nil
 			}
@@ -65,7 +79,7 @@ func (m ThemeChooseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-	s := themes[m.left.Cursor()]
+	s := m.themes[m.left.Cursor()]
 	m.right.background.theme = s
 	m.right.leftWidth = m.left.Width()
 	m.right.Update(message)

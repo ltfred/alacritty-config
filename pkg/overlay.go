@@ -6,12 +6,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/ltfred/alacritty/pkg/themes"
 )
 
 type OverlayModel struct {
-	background   liveMode
+	background   themeModel
 	foreground   confirmModel
-	theme        theme
+	theme        themes.Theme
 	leftWidth    int
 	isConfirming bool
 }
