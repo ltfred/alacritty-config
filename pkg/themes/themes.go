@@ -65,6 +65,10 @@ type Theme struct {
 	Colors Colors `toml:"colors"`
 }
 
+func (t Theme) GetColorsOriginData() string {
+	return t.data
+}
+
 func GetThemes() []Theme {
 	for i := range themes {
 		_, _ = toml.Decode(themes[i].data, &themes[i])

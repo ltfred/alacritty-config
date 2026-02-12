@@ -4,7 +4,7 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ltfred/alacritty/pkg"
+	"github.com/ltfred/alacritty/pkg/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func init() {
 }
 
 func themes(cmd *cobra.Command, args []string) {
-	p := tea.NewProgram(pkg.NewThemeChooseModel(), tea.WithAltScreen())
+	p := tea.NewProgram(ui.NewThemeChooseModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}

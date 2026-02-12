@@ -1,4 +1,4 @@
-package pkg
+package ui
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func (m confirmModel) View() string {
 	noBtn := noStyle.Render(" No. ")
 
 	content := fmt.Sprintf("%s\n\n%s %s",
-		m.title,
+		fmt.Sprintf("switch theme to %s", m.title),
 		yesBtn,
 		noBtn)
 	width, height := lipgloss.Size(content)

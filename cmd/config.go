@@ -4,7 +4,7 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ltfred/alacritty/pkg"
+	"github.com/ltfred/alacritty/pkg/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ func init() {
 }
 
 func config(cmd *cobra.Command, args []string) {
-	if _, err := tea.NewProgram(pkg.NewConfigModel(), tea.WithAltScreen()).Run(); err != nil {
+	if _, err := tea.NewProgram(ui.NewConfigModel(), tea.WithAltScreen()).Run(); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -1,9 +1,10 @@
-package pkg
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/ltfred/alacritty/pkg/config"
 	"github.com/ltfred/alacritty/pkg/themes"
 )
 
@@ -69,7 +70,11 @@ func (m ThemeChooseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.right.isConfirming = false
-			_ = m.right.foreground.yesSelected
+			if m.right.foreground.yesSelected {
+				if err := config.SetTheme(m.themes[m.left.Cursor()].Name, m.themes[m.left.Cursor()].GetColorsOriginData()); err != nil {
+					return m, tea.Printf("failed: %v", err)
+				}
+			}
 			m.right.foreground = confirmModel{}
 			return m, nil
 
