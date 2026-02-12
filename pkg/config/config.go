@@ -26,7 +26,7 @@ func ParseConfig() map[string]any {
 	var config any
 	_, err := toml.DecodeFile(path, &config)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 
 	return config.(map[string]any)
@@ -60,16 +60,17 @@ func SetTheme(name, data string) error {
 
 	config := ParseConfig()
 
-	general := make(map[string]any)
-	if _, ok := config["general"]; ok {
-		general = config["general"].(map[string]any)
+	general, ok := config["general"].(map[string]any)
+	if !ok {
+		general = make(map[string]any)
 	}
-	anies := make([]any, 0)
-	if _, ok := general["import"]; ok {
-		anies = general["import"].([]any)
+	importList, ok := general["import"].([]any)
+	if !ok {
+		importList = make([]any, 0)
 	}
-	anies = append(anies, themePath)
-	general["import"] = anies
+
+	importList = append(importList, themePath)
+	general["import"] = importList
 	config["general"] = general
 
 	return WriteConfig(config)

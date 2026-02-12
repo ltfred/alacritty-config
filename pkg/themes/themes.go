@@ -27,6 +27,9 @@ var solarizedDark string
 //go:embed solarized-light.toml
 var solarizedLight string
 
+//go:embed one-dark.toml
+var oneDark string
+
 var themes = []Theme{
 	{
 		Name: "catppuccin-frappe",
@@ -55,6 +58,10 @@ var themes = []Theme{
 	{
 		Name: "solarized-light",
 		data: solarizedLight,
+	},
+	{
+		Name: "one-dark",
+		data: oneDark,
 	},
 }
 
