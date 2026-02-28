@@ -1,12 +1,12 @@
 package ui
 
 import (
-	"fmt"
 	"runtime"
 	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/ltfred/alacritty/pkg/config"
 )
 
 type ConfigModel struct {
@@ -16,6 +16,7 @@ type ConfigModel struct {
 var (
 	decorations    string
 	startupMode    string
+	title          string
 	column         string
 	line           string
 	opacity        string
@@ -50,6 +51,8 @@ var descMap = map[string]string{
 }
 
 func NewConfigModel() ConfigModel {
+	cfg := config.GetConfigStruct()
+
 	return ConfigModel{
 		form: huh.NewForm(
 			huh.NewGroup(
@@ -75,44 +78,36 @@ func NewConfigModel() ConfigModel {
 					).Value(&startupMode).DescriptionFunc(func() string {
 					return descMap[startupMode]
 				}, &startupMode),
-				huh.NewInput().Title("1.3 Input columns").Value(&column).Validate(func(
-					s string) error {
-					if s != "" {
-						_, err := strconv.Atoi(s)
-						return err
+
+				huh.NewInput().Title("1.3 window title").Value(&title).DescriptionFunc(func() string {
+					if title == "" {
+						return "Default: \"Alacritty\""
 					}
-					return nil
-				}).DescriptionFunc(func() string {
-					if column == "" {
-						return "Default: 180"
-					}
-					return column
-				}, &column),
-				huh.NewInput().Title("1.4 Input lines").Value(&line).Validate(func(s string) error {
-					if s != "" {
-						_, err := strconv.Atoi(s)
-						return err
-					}
-					return nil
-				}).DescriptionFunc(func() string {
+					return title
+				}, &title),
+
+				huh.NewInput().Title("1.4 Input columns").Value(&column).Validate(validateIntF()).DescriptionFunc(
+					func() string {
+						if column == "" {
+							return "Default: 180"
+						}
+						return column
+					}, &column).Placeholder(strconv.Itoa(cfg.Window.Dimensions.Columns)),
+
+				huh.NewInput().Title("1.5 Input lines").Value(&line).Validate(validateIntF()).DescriptionFunc(func() string {
 					if line == "" {
 						return "Default: 40"
 					}
 					return line
-				}, &line),
-				huh.NewInput().Title("1.5 Input opacity").Value(&opacity).Validate(func(
-					s string) error {
-					if s != "" {
-						_, err := strconv.ParseFloat(s, 64)
-						return err
-					}
-					return nil
-				}).DescriptionFunc(func() string {
-					if opacity == "" {
-						return "Default: 1.0"
-					}
-					return opacity
-				}, &opacity),
+				}, &line).Placeholder(strconv.Itoa(cfg.Window.Dimensions.Lines)),
+
+				huh.NewInput().Title("1.6 Input opacity").Value(&opacity).Validate(validateFloatF()).DescriptionFunc(
+					func() string {
+						if opacity == "" {
+							return "Default: 1.0"
+						}
+						return opacity
+					}, &opacity).Placeholder(strconv.FormatFloat(cfg.Window.Opacity, 'f', -1, 64)),
 			),
 
 			huh.NewGroup(
@@ -150,12 +145,13 @@ func NewConfigModel() ConfigModel {
 					}
 					return boldItalicFont
 				}, &boldItalicFont),
-				huh.NewInput().Title("2.5 Input font size").Value(&fontSize).DescriptionFunc(func() string {
-					if fontSize == "" {
-						return "Default: 11.25"
-					}
-					return fontSize
-				}, &fontSize),
+				huh.NewInput().Title("2.5 Input font size").Value(&fontSize).Validate(validateFloatF()).
+					DescriptionFunc(func() string {
+						if fontSize == "" {
+							return "Default: 11.25"
+						}
+						return fontSize
+					}, &fontSize),
 			),
 
 			huh.NewGroup(
@@ -206,22 +202,26 @@ func (m ConfigModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ConfigModel) View() string {
 	if m.form.State == huh.StateCompleted {
-		return fmt.Sprintf(`
-[1. WINDOW]
-1.1 Choose decorations: %s
-1.2 Choose startup mode: %s
-1.3 Input columns: %s
-1.4 Input lines: %s
-1.5 Input opacity: %s
-
-[2. FONT]
-2.1 Input font: %s
-2.2 Input font size: %s
-
-[3. CURSOR]
-3.1 Choose shape: %s
-3.2 Choose blinking: %s
-`, decorations, startupMode, column, line, opacity, normalFont, fontSize, shape, blinking)
 	}
 	return m.form.View()
+}
+
+func validateIntF() func(s string) error {
+	return func(s string) error {
+		if s != "" {
+			_, err := strconv.Atoi(s)
+			return err
+		}
+		return nil
+	}
+}
+
+func validateFloatF() func(s string) error {
+	return func(s string) error {
+		if s != "" {
+			_, err := strconv.ParseFloat(s, 32)
+			return err
+		}
+		return nil
+	}
 }

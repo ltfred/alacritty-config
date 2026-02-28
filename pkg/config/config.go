@@ -10,6 +10,44 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Dimensions struct {
+	Columns int `toml:"columns"`
+	Lines   int `toml:"lines"`
+}
+
+type Window struct {
+	Decorations string     `toml:"decorations"`
+	Dimensions  Dimensions `toml:"dimensions"`
+	StartMode   string     `toml:"startup_mode"`
+	Opacity     float64    `toml:"opacity"`
+	Title       string     `toml:"title"`
+}
+
+type Cursor struct {
+	BlinkInterval int         `toml:"blink_interval"`
+	Style         CursorStyle `toml:"style"`
+}
+
+type CursorStyle struct {
+	Shape    string `toml:"shape"`
+	BlinkIng string `toml:"blinking"`
+}
+
+type Font struct {
+	Size   float64    `toml:"size"`
+	Normal FontNormal `toml:"normal"`
+}
+
+type FontNormal struct {
+	Family string `toml:"family"`
+}
+
+type Config struct {
+	Window Window `toml:"window"`
+	Cursor Cursor `toml:"cursor"`
+	Font   Font   `toml:"font"`
+}
+
 func getConfigDir() string {
 	switch runtime.GOOS {
 	case "darwin", "linux":
@@ -21,7 +59,7 @@ func getConfigDir() string {
 	}
 }
 
-func ParseConfig() map[string]any {
+func GetConfigMap() map[string]any {
 	path := filepath.Join(getConfigDir(), "alacritty.toml")
 	var config any
 	_, err := toml.DecodeFile(path, &config)
@@ -30,6 +68,13 @@ func ParseConfig() map[string]any {
 	}
 
 	return config.(map[string]any)
+}
+
+func GetConfigStruct() Config {
+	path := filepath.Join(getConfigDir(), "alacritty.toml")
+	var config Config
+	toml.DecodeFile(path, &config)
+	return config
 }
 
 func WriteConfig(config map[string]any) error {
@@ -58,7 +103,7 @@ func SetTheme(name, data string) error {
 		return err
 	}
 
-	config := ParseConfig()
+	config := GetConfigMap()
 
 	general, ok := config["general"].(map[string]any)
 	if !ok {
