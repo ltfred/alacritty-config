@@ -34,12 +34,16 @@ type CursorStyle struct {
 }
 
 type Font struct {
-	Size   float64    `toml:"size"`
-	Normal FontNormal `toml:"normal"`
+	Size       float64   `toml:"size"`
+	Normal     FontStyle `toml:"normal"`
+	Bold       FontStyle `toml:"bold"`
+	Italic     FontStyle `toml:"italic"`
+	BoldItalic FontStyle `toml:"bold_italic"`
 }
 
-type FontNormal struct {
+type FontStyle struct {
 	Family string `toml:"family"`
+	Style  string `toml:"style"`
 }
 
 type Config struct {
