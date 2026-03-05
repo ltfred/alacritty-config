@@ -63,22 +63,25 @@ func getConfigDir() string {
 	}
 }
 
-func GetConfigMap() map[string]any {
+func GetConfigMap() (map[string]any, error) {
 	path := filepath.Join(getConfigDir(), "alacritty.toml")
 	var config any
 	_, err := toml.DecodeFile(path, &config)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return config.(map[string]any)
+	return config.(map[string]any), nil
 }
 
-func GetConfigStruct() Config {
+func GetConfigStruct() (Config, error) {
 	path := filepath.Join(getConfigDir(), "alacritty.toml")
 	var config Config
-	toml.DecodeFile(path, &config)
-	return config
+	if _, err := toml.DecodeFile(path, &config); err != nil {
+		return config, err
+	}
+
+	return config, nil
 }
 
 func WriteConfig(config map[string]any) error {
@@ -107,7 +110,10 @@ func SetTheme(name, data string) error {
 		return err
 	}
 
-	config := GetConfigMap()
+	config, err := GetConfigMap()
+	if err != nil {
+		return err
+	}
 
 	general, ok := config["general"].(map[string]any)
 	if !ok {

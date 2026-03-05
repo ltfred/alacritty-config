@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 
@@ -13,7 +14,8 @@ import (
 
 type ConfigModel struct {
 	form      *huh.Form
-	originCfg config.Config
+	oldCfg    config.Config
+	oldCfgMap map[string]any
 }
 
 var (
@@ -54,7 +56,16 @@ var descMap = map[string]string{
 }
 
 func NewConfigModel() ConfigModel {
-	cfg := config.GetConfigStruct()
+	cfg, err := config.GetConfigStruct()
+	if err != nil {
+		color.New(color.FgRed).PrintFunc()(err)
+		os.Exit(1)
+	}
+	configMap, err := config.GetConfigMap()
+	if err != nil {
+		color.New(color.FgRed).PrintFunc()(err)
+		os.Exit(1)
+	}
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -139,19 +150,19 @@ func NewConfigModel() ConfigModel {
 					return "If the family is not specified, it will fall back to the value specified for the normal font"
 				}
 				return boldFont
-			}, &boldFont),
+			}, &boldFont).Placeholder(cfg.Font.Bold.Family),
 			huh.NewInput().Title("2.3 Input italic font").Value(&italicFont).DescriptionFunc(func() string {
 				if italicFont == "" {
 					return "If the family is not specified, it will fall back to the value specified for the normal font"
 				}
 				return italicFont
-			}, &italicFont),
+			}, &italicFont).Placeholder(cfg.Font.Italic.Family),
 			huh.NewInput().Title("2.4 Input bold italic font").Value(&boldItalicFont).DescriptionFunc(func() string {
 				if boldItalicFont == "" {
 					return "If the family is not specified, it will fall back to the value specified for the normal font"
 				}
 				return boldItalicFont
-			}, &boldItalicFont),
+			}, &boldItalicFont).Placeholder(cfg.Font.BoldItalic.Family),
 			huh.NewInput().Title("2.5 Input font size").Value(&fontSize).Validate(validateFloatF()).DescriptionFunc(func() string {
 				if fontSize == "" {
 					return "Default: 11.25"
@@ -186,7 +197,8 @@ func NewConfigModel() ConfigModel {
 
 	return ConfigModel{
 		form:      form,
-		originCfg: cfg,
+		oldCfg:    cfg,
+		oldCfgMap: configMap,
 	}
 }
 
@@ -202,6 +214,7 @@ func (m ConfigModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "y", "Y":
 			if m.form.State == huh.StateCompleted {
+				config.WriteConfig(combineCfg(m.oldCfgMap, newCfgMap()))
 				return m, tea.Quit
 			}
 		case "n", "N":
@@ -221,8 +234,7 @@ func (m ConfigModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ConfigModel) View() string {
 	if m.form.State == huh.StateCompleted {
-		return fmt.Sprintf(`
-1. WINDOW
+		return fmt.Sprintf(`1. WINDOW
 
 decorations: %s
 startup mode: %s
@@ -244,23 +256,23 @@ font size: %s
 shape: %s
 blinking: %s
 
-Confirm[Y/n]
+Confirm?[Y/n]
 `,
-			resultColor(m.originCfg.Window.Decorations, decorations),
-			resultColor(m.originCfg.Window.StartMode, startupMode),
-			resultColor(m.originCfg.Window.Title, title),
-			resultColor(strconv.Itoa(m.originCfg.Window.Dimensions.Columns), column),
-			resultColor(strconv.Itoa(m.originCfg.Window.Dimensions.Lines), line),
-			resultColor(strconv.FormatFloat(m.originCfg.Window.Opacity, 'f', -1, 64), opacity),
+			resultColor(m.oldCfg.Window.Decorations, decorations),
+			resultColor(m.oldCfg.Window.StartMode, startupMode),
+			resultColor(m.oldCfg.Window.Title, title),
+			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Columns), column),
+			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Lines), line),
+			resultColor(strconv.FormatFloat(m.oldCfg.Window.Opacity, 'f', -1, 64), opacity),
 
-			resultColor(m.originCfg.Font.Normal.Family, normalFont),
-			resultColor(m.originCfg.Font.Bold.Family, boldFont),
-			resultColor(m.originCfg.Font.Italic.Family, italicFont),
-			resultColor(m.originCfg.Font.BoldItalic.Family, boldItalicFont),
-			resultColor(strconv.FormatFloat(m.originCfg.Font.Size, 'f', -1, 64), fontSize),
+			resultColor(m.oldCfg.Font.Normal.Family, normalFont),
+			resultColor(m.oldCfg.Font.Bold.Family, boldFont),
+			resultColor(m.oldCfg.Font.Italic.Family, italicFont),
+			resultColor(m.oldCfg.Font.BoldItalic.Family, boldItalicFont),
+			resultColor(strconv.FormatFloat(m.oldCfg.Font.Size, 'f', -1, 64), fontSize),
 
-			resultColor(m.originCfg.Cursor.Style.Shape, shape),
-			resultColor(m.originCfg.Cursor.Style.BlinkIng, blinking),
+			resultColor(m.oldCfg.Cursor.Style.Shape, shape),
+			resultColor(m.oldCfg.Cursor.Style.BlinkIng, blinking),
 		)
 	}
 	return m.form.View()
@@ -308,4 +320,70 @@ func resultColor(origin, new string) string {
 		return yellow(origin + " -> " + new + " (modified)")
 	}
 	return red(origin + " -> " + new + " (deleted)")
+}
+
+func mustCovert[T ~int | ~float64](s string, defaultValue T) T {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return defaultValue
+	}
+
+	var v T
+	switch any(v).(type) {
+	case int:
+		return T(int(f))
+	default:
+		return T(f)
+	}
+}
+
+func newCfgMap() map[string]any {
+	window := map[string]any{
+		"decorations":  decorations,
+		"startup_mode": startupMode,
+		"title":        title,
+		"dimensions": map[string]any{
+			"columns": mustCovert(column, 180),
+			"lines":   mustCovert(line, 180),
+		},
+		"opacity": mustCovert(opacity, 1.0),
+	}
+	font := map[string]any{
+		"size": mustCovert(fontSize, 12),
+		"normal": map[string]any{
+			"family": normalFont,
+		},
+		"bold": map[string]any{
+			"family": normalFont,
+		},
+		"italic": map[string]any{
+			"family": normalFont,
+		},
+		"bold_italic": map[string]any{
+			"family": normalFont,
+		},
+	}
+
+	cursor := map[string]any{
+		"style": map[string]any{
+			"shape":    shape,
+			"blinking": blinking,
+		},
+	}
+
+	return map[string]any{
+		"window": window,
+		"font":   font,
+		"cursor": cursor,
+	}
+}
+
+func combineCfg(oldCfg, newCfg map[string]any) map[string]any {
+	for k := range oldCfg {
+		c, ok := newCfg[k]
+		if ok {
+			oldCfg[k] = c
+		}
+	}
+	return oldCfg
 }
