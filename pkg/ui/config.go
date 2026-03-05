@@ -132,16 +132,7 @@ func NewConfigModel() ConfigModel {
 
 			huh.NewInput().Title("2.1 Input normal font").Value(&normalFont).DescriptionFunc(func() string {
 				if normalFont == "" {
-					switch runtime.GOOS {
-					case "darwin":
-						return "Default: Menlo"
-					case "linux":
-						return "Default: monospace"
-					case "windows":
-						return "Default: Consolas"
-					default:
-						return ""
-					}
+					return defaultFont()
 				}
 				return normalFont
 			}, &normalFont).Placeholder(cfg.Font.Normal.Family),
@@ -278,6 +269,19 @@ Confirm?[Y/n]
 	return m.form.View()
 }
 
+func defaultFont() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "Default: Menlo"
+	case "linux":
+		return "Default: monospace"
+	case "windows":
+		return "Default: Consolas"
+	default:
+		return ""
+	}
+}
+
 func validateIntF() func(s string) error {
 	return func(s string) error {
 		if s != "" {
@@ -337,30 +341,38 @@ func mustCovert[T ~int | ~float64](s string, defaultValue T) T {
 	}
 }
 
+func defaultValue(s, v string) string {
+	if s == "" {
+		return v
+	}
+	return s
+}
+
 func newCfgMap() map[string]any {
 	window := map[string]any{
 		"decorations":  decorations,
 		"startup_mode": startupMode,
-		"title":        title,
+		"title":        defaultValue(title, "Alacritty"),
 		"dimensions": map[string]any{
 			"columns": mustCovert(column, 180),
 			"lines":   mustCovert(line, 180),
 		},
 		"opacity": mustCovert(opacity, 1.0),
 	}
+	f := defaultValue(normalFont, defaultFont())
 	font := map[string]any{
 		"size": mustCovert(fontSize, 12),
 		"normal": map[string]any{
-			"family": normalFont,
+			"family": f,
 		},
 		"bold": map[string]any{
-			"family": normalFont,
+			"family": defaultValue(boldFont, f),
 		},
 		"italic": map[string]any{
-			"family": normalFont,
+			"family": defaultValue(italicFont, f),
 		},
 		"bold_italic": map[string]any{
-			"family": normalFont,
+			"family": defaultValue(boldItalicFont, f),
 		},
 	}
 
