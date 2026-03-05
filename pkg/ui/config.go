@@ -13,12 +13,9 @@ import (
 )
 
 type ConfigModel struct {
-	form      *huh.Form
-	oldCfg    config.Config
-	oldCfgMap map[string]any
-}
-
-var (
+	form           *huh.Form
+	oldCfg         config.Config
+	oldCfgMap      map[string]any
 	decorations    string
 	startupMode    string
 	title          string
@@ -32,6 +29,13 @@ var (
 	fontSize       string
 	shape          string
 	blinking       string
+}
+
+const (
+	defaultColumns  = 180
+	defaultLines    = 40
+	defaultOpacity  = 1.0
+	defaultFontSize = 11.25
 )
 
 var descMap = map[string]string{
@@ -67,130 +71,221 @@ func NewConfigModel() ConfigModel {
 		os.Exit(1)
 	}
 
+	model := ConfigModel{
+		oldCfg:    cfg,
+		oldCfgMap: configMap,
+	}
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().Title("1. WINDOW"),
-			huh.NewSelect[string]().
-				Title("1.1 Choose decorations").
-				Options(
-					huh.NewOption(optionSelected("Full", cfg.Window.Decorations)),
-					huh.NewOption(optionSelected("None", cfg.Window.Decorations)),
-					huh.NewOption(optionSelected("Transparent", cfg.Window.Decorations)),
-					huh.NewOption(optionSelected("Buttonless", cfg.Window.Decorations)),
-				).
-				Value(&decorations).
-				DescriptionFunc(func() string {
-					return descMap[decorations]
-				}, &decorations),
-
-			huh.NewSelect[string]().
-				Title("1.2 Choose startup mode").
-				Options(
-					huh.NewOption(optionSelected("Windowed", cfg.Window.StartMode)),
-					huh.NewOption(optionSelected("Maximized", cfg.Window.StartMode)),
-					huh.NewOption(optionSelected("Fullscreen", cfg.Window.StartMode)),
-					huh.NewOption(optionSelected("SimpleFullscreen", cfg.Window.StartMode)),
-				).
-				Value(&startupMode).
-				DescriptionFunc(func() string {
-					return descMap[startupMode]
-				}, &startupMode),
-
-			huh.NewInput().Title("1.3 window title").Placeholder(cfg.Window.Title).Value(&title).DescriptionFunc(func() string {
-				if title == "" {
-					return "Default: \"Alacritty\""
-				}
-				return title
-			}, &title),
-
-			huh.NewInput().Title("1.4 Input columns").Value(&column).Validate(validateIntF()).
-				Placeholder(strconv.Itoa(cfg.Window.Dimensions.Columns)).DescriptionFunc(func() string {
-				if column == "" {
-					return "Default: 180"
-				}
-				return column
-			}, &column),
-
-			huh.NewInput().Title("1.5 Input lines").Value(&line).Validate(validateIntF()).
-				Placeholder(strconv.Itoa(cfg.Window.Dimensions.Lines)).DescriptionFunc(func() string {
-				if line == "" {
-					return "Default: 40"
-				}
-				return line
-			}, &line),
-
-			huh.NewInput().Title("1.6 Input opacity").Value(&opacity).Validate(validateFloatF()).DescriptionFunc(func() string {
-				if opacity == "" {
-					return "Default: 1.0"
-				}
-				return opacity
-			}, &opacity).Placeholder(strconv.FormatFloat(cfg.Window.Opacity, 'f', -1, 64)),
+			createDecorationsSelect(cfg.Window.Decorations, &model.decorations),
+			createStartupModeSelect(cfg.Window.StartMode, &model.startupMode),
+			createTitleInput(cfg.Window.Title, &model.title),
+			createColumnsInput(cfg.Window.Dimensions.Columns, &model.column),
+			createLinesInput(cfg.Window.Dimensions.Lines, &model.line),
+			createOpacityInput(cfg.Window.Opacity, &model.opacity),
 		),
 
 		huh.NewGroup(
 			huh.NewNote().Title("2. FONT"),
-
-			huh.NewInput().Title("2.1 Input normal font").Value(&normalFont).DescriptionFunc(func() string {
-				if normalFont == "" {
-					return defaultFont()
-				}
-				return normalFont
-			}, &normalFont).Placeholder(cfg.Font.Normal.Family),
-			huh.NewInput().Title("2.2 Input bold font").Value(&boldFont).DescriptionFunc(func() string {
-				if boldFont == "" {
-					return "If the family is not specified, it will fall back to the value specified for the normal font"
-				}
-				return boldFont
-			}, &boldFont).Placeholder(cfg.Font.Bold.Family),
-			huh.NewInput().Title("2.3 Input italic font").Value(&italicFont).DescriptionFunc(func() string {
-				if italicFont == "" {
-					return "If the family is not specified, it will fall back to the value specified for the normal font"
-				}
-				return italicFont
-			}, &italicFont).Placeholder(cfg.Font.Italic.Family),
-			huh.NewInput().Title("2.4 Input bold italic font").Value(&boldItalicFont).DescriptionFunc(func() string {
-				if boldItalicFont == "" {
-					return "If the family is not specified, it will fall back to the value specified for the normal font"
-				}
-				return boldItalicFont
-			}, &boldItalicFont).Placeholder(cfg.Font.BoldItalic.Family),
-			huh.NewInput().Title("2.5 Input font size").Value(&fontSize).Validate(validateFloatF()).DescriptionFunc(func() string {
-				if fontSize == "" {
-					return "Default: 11.25"
-				}
-				return fontSize
-			}, &fontSize).Placeholder(strconv.FormatFloat(cfg.Font.Size, 'f', -1, 64)),
+			createNormalFontInput(cfg.Font.Normal.Family, &model.normalFont),
+			createBoldFontInput(cfg.Font.Bold.Family, &model.boldFont),
+			createItalicFontInput(cfg.Font.Italic.Family, &model.italicFont),
+			createBoldItalicFontInput(cfg.Font.BoldItalic.Family, &model.boldItalicFont),
+			createFontSizeInput(cfg.Font.Size, &model.fontSize),
 		),
 
 		huh.NewGroup(
 			huh.NewNote().Title("3. CURSOR"),
-			huh.NewSelect[string]().
-				Title("3.1 Choose shape").
-				Options(
-					huh.NewOption(optionSelected("Block", cfg.Cursor.Style.Shape)),
-					huh.NewOption(optionSelected("Underline", cfg.Cursor.Style.Shape)),
-					huh.NewOption(optionSelected("Beam", cfg.Cursor.Style.Shape)),
-				).Value(&shape).DescriptionFunc(func() string {
-				return descMap[shape]
-			}, &shape),
-			huh.NewSelect[string]().
-				Title("3.2 Choose blinking").
-				Options(
-					huh.NewOption(optionSelected("Never", cfg.Cursor.Style.BlinkIng)),
-					huh.NewOption(optionSelected("Off", cfg.Cursor.Style.BlinkIng)),
-					huh.NewOption(optionSelected("On", cfg.Cursor.Style.BlinkIng)),
-					huh.NewOption(optionSelected("Always", cfg.Cursor.Style.BlinkIng)),
-				).Value(&blinking).DescriptionFunc(func() string {
-				return descMap[blinking]
-			}, &blinking),
+			createShapeSelect(cfg.Cursor.Style.Shape, &model.shape),
+			createBlinkingSelect(cfg.Cursor.Style.BlinkIng, &model.blinking),
 		),
 	)
 
-	return ConfigModel{
-		form:      form,
-		oldCfg:    cfg,
-		oldCfgMap: configMap,
-	}
+	model.form = form
+
+	return model
+}
+
+func createDecorationsSelect(defaultValue string, value *string) *huh.Select[string] {
+	return huh.NewSelect[string]().
+		Title("1.1 Choose decorations").
+		Options(
+			huh.NewOption(optionSelected("Full", defaultValue)),
+			huh.NewOption(optionSelected("None", defaultValue)),
+			huh.NewOption(optionSelected("Transparent", defaultValue)),
+			huh.NewOption(optionSelected("Buttonless", defaultValue)),
+		).
+		Value(value).
+		DescriptionFunc(func() string {
+			return descMap[*value]
+		}, value)
+}
+
+func createStartupModeSelect(defaultValue string, value *string) *huh.Select[string] {
+	return huh.NewSelect[string]().
+		Title("1.2 Choose startup mode").
+		Options(
+			huh.NewOption(optionSelected("Windowed", defaultValue)),
+			huh.NewOption(optionSelected("Maximized", defaultValue)),
+			huh.NewOption(optionSelected("Fullscreen", defaultValue)),
+			huh.NewOption(optionSelected("SimpleFullscreen", defaultValue)),
+		).
+		Value(value).
+		DescriptionFunc(func() string {
+			return descMap[*value]
+		}, value)
+}
+
+func createTitleInput(defaultValue string, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("1.3 window title").
+		Placeholder(defaultValue).
+		Value(value).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: \"Alacritty\""
+			}
+			return *value
+		}, value)
+}
+
+func createColumnsInput(defaultValue int, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("1.4 Input columns").
+		Value(value).
+		Validate(validateIntF()).
+		Placeholder(strconv.Itoa(defaultValue)).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: 180"
+			}
+			return *value
+		}, value)
+}
+
+func createLinesInput(defaultValue int, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("1.5 Input lines").
+		Value(value).
+		Validate(validateIntF()).
+		Placeholder(strconv.Itoa(defaultValue)).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: 40"
+			}
+			return *value
+		}, value)
+}
+
+func createOpacityInput(defaultValue float64, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("1.6 Input opacity").
+		Value(value).
+		Validate(validateFloatF()).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: 1.0"
+			}
+			return *value
+		}, value).
+		Placeholder(strconv.FormatFloat(defaultValue, 'f', -1, 64))
+}
+
+func createNormalFontInput(defaultValue string, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("2.1 Input normal font").
+		Value(value).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: " + defaultFont()
+			}
+			return *value
+		}, value).
+		Placeholder(defaultValue)
+}
+
+func createBoldFontInput(defaultValue string, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("2.2 Input bold font").
+		Value(value).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "If the family is not specified, it will fall back to the value specified for the normal font"
+			}
+			return *value
+		}, value).
+		Placeholder(defaultValue)
+}
+
+func createItalicFontInput(defaultValue string, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("2.3 Input italic font").
+		Value(value).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "If the family is not specified, it will fall back to the value specified for the normal font"
+			}
+			return *value
+		}, value).
+		Placeholder(defaultValue)
+}
+
+func createBoldItalicFontInput(defaultValue string, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("2.4 Input bold italic font").
+		Value(value).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "If the family is not specified, it will fall back to the value specified for the normal font"
+			}
+			return *value
+		}, value).
+		Placeholder(defaultValue)
+}
+
+func createFontSizeInput(defaultValue float64, value *string) *huh.Input {
+	return huh.NewInput().
+		Title("2.5 Input font size").
+		Value(value).
+		Validate(validateFloatF()).
+		DescriptionFunc(func() string {
+			if *value == "" {
+				return "Default: 11.25"
+			}
+			return *value
+		}, value).
+		Placeholder(strconv.FormatFloat(defaultValue, 'f', -1, 64))
+}
+
+func createShapeSelect(defaultValue string, value *string) *huh.Select[string] {
+	return huh.NewSelect[string]().
+		Title("3.1 Choose shape").
+		Options(
+			huh.NewOption(optionSelected("Block", defaultValue)),
+			huh.NewOption(optionSelected("Underline", defaultValue)),
+			huh.NewOption(optionSelected("Beam", defaultValue)),
+		).
+		Value(value).
+		DescriptionFunc(func() string {
+			return descMap[*value]
+		}, value)
+}
+
+func createBlinkingSelect(defaultValue string, value *string) *huh.Select[string] {
+	return huh.NewSelect[string]().
+		Title("3.2 Choose blinking").
+		Options(
+			huh.NewOption(optionSelected("Never", defaultValue)),
+			huh.NewOption(optionSelected("Off", defaultValue)),
+			huh.NewOption(optionSelected("On", defaultValue)),
+			huh.NewOption(optionSelected("Always", defaultValue)),
+		).
+		Value(value).
+		DescriptionFunc(func() string {
+			return descMap[*value]
+		}, value)
 }
 
 func (m ConfigModel) Init() tea.Cmd {
@@ -205,7 +300,7 @@ func (m ConfigModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "y", "Y":
 			if m.form.State == huh.StateCompleted {
-				config.WriteConfig(combineCfg(m.oldCfgMap, newCfgMap()))
+				config.WriteConfig(combineCfg(m.oldCfgMap, m.newCfgMap()))
 				return m, tea.Quit
 			}
 		case "n", "N":
@@ -249,21 +344,21 @@ blinking: %s
 
 Confirm?[Y/n]
 `,
-			resultColor(m.oldCfg.Window.Decorations, decorations),
-			resultColor(m.oldCfg.Window.StartMode, startupMode),
-			resultColor(m.oldCfg.Window.Title, title),
-			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Columns), column),
-			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Lines), line),
-			resultColor(strconv.FormatFloat(m.oldCfg.Window.Opacity, 'f', -1, 64), opacity),
+			resultColor(m.oldCfg.Window.Decorations, m.decorations),
+			resultColor(m.oldCfg.Window.StartMode, m.startupMode),
+			resultColor(m.oldCfg.Window.Title, m.title),
+			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Columns), m.column),
+			resultColor(strconv.Itoa(m.oldCfg.Window.Dimensions.Lines), m.line),
+			resultColor(strconv.FormatFloat(m.oldCfg.Window.Opacity, 'f', -1, 64), m.opacity),
 
-			resultColor(m.oldCfg.Font.Normal.Family, normalFont),
-			resultColor(m.oldCfg.Font.Bold.Family, boldFont),
-			resultColor(m.oldCfg.Font.Italic.Family, italicFont),
-			resultColor(m.oldCfg.Font.BoldItalic.Family, boldItalicFont),
-			resultColor(strconv.FormatFloat(m.oldCfg.Font.Size, 'f', -1, 64), fontSize),
+			resultColor(m.oldCfg.Font.Normal.Family, m.normalFont),
+			resultColor(m.oldCfg.Font.Bold.Family, m.boldFont),
+			resultColor(m.oldCfg.Font.Italic.Family, m.italicFont),
+			resultColor(m.oldCfg.Font.BoldItalic.Family, m.boldItalicFont),
+			resultColor(strconv.FormatFloat(m.oldCfg.Font.Size, 'f', -1, 64), m.fontSize),
 
-			resultColor(m.oldCfg.Cursor.Style.Shape, shape),
-			resultColor(m.oldCfg.Cursor.Style.BlinkIng, blinking),
+			resultColor(m.oldCfg.Cursor.Style.Shape, m.shape),
+			resultColor(m.oldCfg.Cursor.Style.BlinkIng, m.blinking),
 		)
 	}
 	return m.form.View()
@@ -272,11 +367,11 @@ Confirm?[Y/n]
 func defaultFont() string {
 	switch runtime.GOOS {
 	case "darwin":
-		return "Default: Menlo"
+		return "Menlo"
 	case "linux":
-		return "Default: monospace"
+		return "monospace"
 	case "windows":
-		return "Default: Consolas"
+		return "Consolas"
 	default:
 		return ""
 	}
@@ -348,38 +443,38 @@ func defaultValue(s, v string) string {
 	return s
 }
 
-func newCfgMap() map[string]any {
+func (m ConfigModel) newCfgMap() map[string]any {
 	window := map[string]any{
-		"decorations":  decorations,
-		"startup_mode": startupMode,
-		"title":        defaultValue(title, "Alacritty"),
+		"decorations":  m.decorations,
+		"startup_mode": m.startupMode,
+		"title":        defaultValue(m.title, "Alacritty"),
 		"dimensions": map[string]any{
-			"columns": mustCovert(column, 180),
-			"lines":   mustCovert(line, 180),
+			"columns": mustCovert(m.column, defaultColumns),
+			"lines":   mustCovert(m.line, defaultLines),
 		},
-		"opacity": mustCovert(opacity, 1.0),
+		"opacity": mustCovert(m.opacity, defaultOpacity),
 	}
-	f := defaultValue(normalFont, defaultFont())
+	f := defaultValue(m.normalFont, defaultFont())
 	font := map[string]any{
-		"size": mustCovert(fontSize, 12),
+		"size": mustCovert(m.fontSize, defaultFontSize),
 		"normal": map[string]any{
 			"family": f,
 		},
 		"bold": map[string]any{
-			"family": defaultValue(boldFont, f),
+			"family": defaultValue(m.boldFont, f),
 		},
 		"italic": map[string]any{
-			"family": defaultValue(italicFont, f),
+			"family": defaultValue(m.italicFont, f),
 		},
 		"bold_italic": map[string]any{
-			"family": defaultValue(boldItalicFont, f),
+			"family": defaultValue(m.boldItalicFont, f),
 		},
 	}
 
 	cursor := map[string]any{
 		"style": map[string]any{
-			"shape":    shape,
-			"blinking": blinking,
+			"shape":    m.shape,
+			"blinking": m.blinking,
 		},
 	}
 
