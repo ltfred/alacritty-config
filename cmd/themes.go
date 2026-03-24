@@ -11,7 +11,7 @@ import (
 // themesCmd represents the themes command
 var themesCmd = &cobra.Command{
 	Use:   "themes",
-	Short: "The `themes` command is used to preview or list all the available themes for Alacritty.",
+	Short: "Preview all the available themes for Alacritty.",
 	Run:   themes,
 }
 
